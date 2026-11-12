@@ -1,0 +1,21 @@
+{
+  "name": "snes-audio-ripper-macos",
+  "version": "1.0.0-mac.1",
+  "private": true,
+  "description": "Unofficial Apple Silicon macOS port of SNES Audio Ripper",
+  "scripts": {
+    "start": "electron app",
+    "build": "node scripts/build-macos.cjs",
+    "test": "node --test tests/*.test.cjs",
+    "rip": "node scripts/rip.cjs",
+    "setup": "node scripts/setup.cjs",
+    "core": "node scripts/build-core.cjs"
+  },
+  "devDependencies": {
+    "electron": "45.3.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/punchbrotv/snes-audio-ripper-macos.git"
+  }
+}

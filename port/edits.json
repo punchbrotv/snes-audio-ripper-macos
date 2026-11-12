@@ -1,0 +1,1132 @@
+{
+  "upstreamRelease": "v1.0.0",
+  "files": {
+    "art.js": {
+      "sourceSHA256": "4bfad08b535e0366ffe54714e6af9e6593183e7e39a9c70d48612cbef7f73316",
+      "resultSHA256": "069565e2c201522f25a941073ea08443db08c97436d29e62644e014a8a01d44e",
+      "edits": [
+        {
+          "start": 357,
+          "end": 361,
+          "text": "url"
+        },
+        {
+          "start": 372,
+          "end": 372,
+          "text": "url, {signal: AbortSignal"
+        },
+        {
+          "start": 373,
+          "end": 376,
+          "text": "timeout(5000)}"
+        },
+        {
+          "start": 455,
+          "end": 459,
+          "text": "url"
+        },
+        {
+          "start": 474,
+          "end": 474,
+          "text": "url, {signal: AbortSignal"
+        },
+        {
+          "start": 475,
+          "end": 478,
+          "text": "timeout(5000)}"
+        }
+      ]
+    },
+    "index.html": {
+      "sourceSHA256": "aba6cd3c4053eaef14f935a83e5808e1efb0ece67828f8b95175364d08bb0a28",
+      "resultSHA256": "ec516c9a0104f2bd5251eef588b630c61b39d4d00842766d602c91c1ac973fc0",
+      "edits": [
+        {
+          "start": 441,
+          "end": 443,
+          "text": "30"
+        },
+        {
+          "start": 445,
+          "end": 445,
+          "text": ";padding-left:78px!important"
+        },
+        {
+          "start": 5148,
+          "end": 5224,
+          "text": ""
+        },
+        {
+          "start": 5662,
+          "end": 5666,
+          "text": ".ZIP"
+        },
+        {
+          "start": 6273,
+          "end": 6273,
+          "text": "ROM "
+        },
+        {
+          "start": 6275,
+          "end": 6275,
+          "text": " ZIP \u00b7"
+        },
+        {
+          "start": 7518,
+          "end": 7519,
+          "text": "api."
+        },
+        {
+          "start": 7523,
+          "end": 7529,
+          "text": "URL"
+        },
+        {
+          "start": 7536,
+          "end": 7542,
+          "text": ","
+        },
+        {
+          "start": 7543,
+          "end": 7625,
+          "text": ""
+        },
+        {
+          "start": 11123,
+          "end": 11127,
+          "text": "le"
+        },
+        {
+          "start": 11128,
+          "end": 11128,
+          "text": " r; try {"
+        },
+        {
+          "start": 11151,
+          "end": 11151,
+          "text": "; } catch(e) {r={ok:false,error:e.message}}"
+        },
+        {
+          "start": 11421,
+          "end": 11421,
+          "text": "if(r.warnings&&r.warnings.length)$('l1').textContent='SAMPLE EXTRACTION ONLY';\n    "
+        },
+        {
+          "start": 11523,
+          "end": 11523,
+          "text": "OUTPUT FOL"
+        },
+        {
+          "start": 11525,
+          "end": 11531,
+          "text": "R: "
+        },
+        {
+          "start": 11610,
+          "end": 11610,
+          "text": "r.cancelled?'STOPPED':"
+        },
+        {
+          "start": 11638,
+          "end": 11638,
+          "text": "r.cancelled?"
+        },
+        {
+          "start": 11639,
+          "end": 11639,
+          "text": "EXTRACTION CANCELLED"
+        },
+        {
+          "start": 11640,
+          "end": 11640,
+          "text": ":r.error;$('seek').classList.remove('on')"
+        },
+        {
+          "start": 13814,
+          "end": 13814,
+          "text": "{if(!busy)"
+        },
+        {
+          "start": 13836,
+          "end": 13836,
+          "text": ")};\napi.onOpen(start);api.onBrowse(browse"
+        },
+        {
+          "start": 13975,
+          "end": 13975,
+          "text": "()=>busy?api.cancel():"
+        },
+        {
+          "start": 13984,
+          "end": 13984,
+          "text": "()"
+        }
+      ]
+    },
+    "main.js": {
+      "sourceSHA256": "abebae6da5c716f946e63a8963fc410ec07e051c32f06e7dbb2bb16e38a77dc5",
+      "resultSHA256": "5a79a80ae3dc0de2f9dd5dc169cf207e0ffd84ba2c76b08b280af1fac56b44e7",
+      "edits": [
+        {
+          "start": 50,
+          "end": 50,
+          "text": ", Menu"
+        },
+        {
+          "start": 72,
+          "end": 72,
+          "text": "');\nconst { Worker } = require('worker_threads"
+        },
+        {
+          "start": 106,
+          "end": 143,
+          "text": ""
+        },
+        {
+          "start": 150,
+          "end": 150,
+          "text": ", job = null, lastOutput = null, output"
+        },
+        {
+          "start": 151,
+          "end": 151,
+          "text": "\nconst queued = [];\nfunction sendOpen(paths) {\n  if (!win || win.webContents.isLoading()) queued.push(...paths);\n  else win.webContents.send('open-files', paths);\n}\napp.on('open-file', (e, file) => { e.preventDefault(); sendOpen([file]); });\nfunction createWindow() {\n  win = new BrowserWindow({width:560,height:490,resizable:false,backgroundColor:'#1b1b26',titleBarStyle:'hiddenInset',\n    webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true}});\n  win.loadFile(path.join(__dirname,'index.html'));\n  win.webContents.setWindowOpenHandler(() => ({action:'deny'}));\n  win.webContents.on('will-navigate', e => e.preventDefault());\n  win.webContents.once('did-finish-load', () => { if (queued.length) sendOpen(queued.splice(0)); });\n  win.on('close', e => {\n    if (job && dialog.showMessageBoxSync(win,{type:'question',message:'Stop the current extraction?',detail:'Completed files will remain in the output folder.',buttons:['Keep extracting','Stop and close'],defaultId:0,cancelId:0})===0) e.preventDefault();\n    else if(job) job.terminate();\n  });\n}"
+        },
+        {
+          "start": 183,
+          "end": 183,
+          "text": "output = app.getPath('desktop');\n  Menu.setApplicationMenu(Menu.buildFromTemplate([\n    {label:app.name,submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'hideOthers'},{role:'unhide'},{type:'separator'},{role:'quit'}]},\n    {label:'File',submenu:[{label:'Open ROM\u2026',accelerator:'CmdOrCtrl+O',click:()=>"
+        },
+        {
+          "start": 186,
+          "end": 186,
+          "text": ".webContents.send('browse')},{label:'Choose Output Folder\u2026',click:pickOutput},{type:'separator'},{role:'close'}]},\n    {role:'editMenu'},{role:'windowMenu'}\n  ]));\n  createWindow();\n});\napp.on('activate', ()"
+        },
+        {
+          "start": 188,
+          "end": 188,
+          "text": ">"
+        },
+        {
+          "start": 189,
+          "end": 192,
+          "text": "{"
+        },
+        {
+          "start": 193,
+          "end": 193,
+          "text": "if (!"
+        },
+        {
+          "start": 206,
+          "end": 206,
+          "text": ".getAllWindows"
+        },
+        {
+          "start": 207,
+          "end": 207,
+          "text": ").length) createWindow(); });\napp.on('window-all-closed', () => app.quit());\nasync function pickOutput() "
+        },
+        {
+          "start": 211,
+          "end": 211,
+          "text": "if(job) return;\n"
+        },
+        {
+          "start": 213,
+          "end": 213,
+          "text": "const r = await dialog.showOpenDialog("
+        },
+        {
+          "start": 215,
+          "end": 215,
+          "text": "n,{title:'Choose extraction "
+        },
+        {
+          "start": 216,
+          "end": 216,
+          "text": "estination',defaultPa"
+        },
+        {
+          "start": 219,
+          "end": 223,
+          "text": "output"
+        },
+        {
+          "start": 224,
+          "end": 275,
+          "text": "p"
+        },
+        {
+          "start": 277,
+          "end": 304,
+          "text": ""
+        },
+        {
+          "start": 305,
+          "end": 349,
+          "text": ""
+        },
+        {
+          "start": 351,
+          "end": 354,
+          "text": "ti"
+        },
+        {
+          "start": 357,
+          "end": 360,
+          "text": "['o"
+        },
+        {
+          "start": 361,
+          "end": 361,
+          "text": "enDi"
+        },
+        {
+          "start": 363,
+          "end": 364,
+          "text": "ct"
+        },
+        {
+          "start": 365,
+          "end": 370,
+          "text": "ry','cre"
+        },
+        {
+          "start": 372,
+          "end": 382,
+          "text": "eD"
+        },
+        {
+          "start": 384,
+          "end": 387,
+          "text": ""
+        },
+        {
+          "start": 388,
+          "end": 390,
+          "text": "ctory"
+        },
+        {
+          "start": 391,
+          "end": 408,
+          "text": "]"
+        },
+        {
+          "start": 414,
+          "end": 415,
+          "text": ""
+        },
+        {
+          "start": 416,
+          "end": 416,
+          "text": "f(!r.ca"
+        },
+        {
+          "start": 417,
+          "end": 417,
+          "text": "celed) output=r"
+        },
+        {
+          "start": 418,
+          "end": 444,
+          "text": "f"
+        },
+        {
+          "start": 447,
+          "end": 455,
+          "text": "Pat"
+        },
+        {
+          "start": 456,
+          "end": 461,
+          "text": "s[0]"
+        },
+        {
+          "start": 464,
+          "end": 466,
+          "text": ""
+        },
+        {
+          "start": 513,
+          "end": 514,
+          "text": ""
+        },
+        {
+          "start": 515,
+          "end": 516,
+          "text": ""
+        },
+        {
+          "start": 548,
+          "end": 549,
+          "text": ""
+        },
+        {
+          "start": 550,
+          "end": 555,
+          "text": ""
+        },
+        {
+          "start": 566,
+          "end": 567,
+          "text": ""
+        },
+        {
+          "start": 579,
+          "end": 580,
+          "text": ""
+        },
+        {
+          "start": 599,
+          "end": 604,
+          "text": ""
+        },
+        {
+          "start": 612,
+          "end": 613,
+          "text": ""
+        },
+        {
+          "start": 615,
+          "end": 616,
+          "text": ""
+        },
+        {
+          "start": 621,
+          "end": 622,
+          "text": ""
+        },
+        {
+          "start": 631,
+          "end": 631,
+          "text": " or ZIP"
+        },
+        {
+          "start": 633,
+          "end": 634,
+          "text": ""
+        },
+        {
+          "start": 645,
+          "end": 646,
+          "text": ""
+        },
+        {
+          "start": 653,
+          "end": 654,
+          "text": ""
+        },
+        {
+          "start": 660,
+          "end": 661,
+          "text": ""
+        },
+        {
+          "start": 667,
+          "end": 668,
+          "text": ""
+        },
+        {
+          "start": 674,
+          "end": 675,
+          "text": ""
+        },
+        {
+          "start": 681,
+          "end": 682,
+          "text": "'zip',"
+        },
+        {
+          "start": 688,
+          "end": 689,
+          "text": ""
+        },
+        {
+          "start": 695,
+          "end": 696,
+          "text": ""
+        },
+        {
+          "start": 702,
+          "end": 703,
+          "text": ""
+        },
+        {
+          "start": 707,
+          "end": 708,
+          "text": ""
+        },
+        {
+          "start": 712,
+          "end": 755,
+          "text": ""
+        },
+        {
+          "start": 757,
+          "end": 760,
+          "text": ""
+        },
+        {
+          "start": 783,
+          "end": 784,
+          "text": ""
+        },
+        {
+          "start": 785,
+          "end": 786,
+          "text": ""
+        },
+        {
+          "start": 788,
+          "end": 789,
+          "text": ""
+        },
+        {
+          "start": 790,
+          "end": 791,
+          "text": ""
+        },
+        {
+          "start": 844,
+          "end": 844,
+          "text": "{\n  if(job) "
+        },
+        {
+          "start": 845,
+          "end": 845,
+          "text": "eturn {ok:false,error:'An extract"
+        },
+        {
+          "start": 846,
+          "end": 848,
+          "text": ""
+        },
+        {
+          "start": 849,
+          "end": 850,
+          "text": "n is already running.'};\n  if(!Array.isArray"
+        },
+        {
+          "start": 856,
+          "end": 856,
+          "text": ")||!paths.length||paths.some(p=>typeof p!=='string')) return {ok:false"
+        },
+        {
+          "start": 857,
+          "end": 857,
+          "text": "error:'Choose"
+        },
+        {
+          "start": 858,
+          "end": 858,
+          "text": "a ROM.'};\n  return new Promise(resolve => {\n    const worker = new Worker(path.join(__dirname,'rip-worker.js'),{workerData:{paths,output,cache:"
+        },
+        {
+          "start": 871,
+          "end": 871,
+          "text": "userData')}});\n    job=worker;\n    let finished=false;\n    const finish=r=>{if(finished)return;finished=true;if(job===worker)job=null;if(r.ok)lastOutput=r.dir;resolve(r)};\n    worker.on('message',m=>{if(m.progress&&!e.sen"
+        },
+        {
+          "start": 873,
+          "end": 873,
+          "text": "r.i"
+        },
+        {
+          "start": 874,
+          "end": 875,
+          "text": "Des"
+        },
+        {
+          "start": 876,
+          "end": 876,
+          "text": "r"
+        },
+        {
+          "start": 877,
+          "end": 879,
+          "text": "yed("
+        },
+        {
+          "start": 880,
+          "end": 887,
+          "text": ")"
+        },
+        {
+          "start": 912,
+          "end": 912,
+          "text": "m.progress);if(m.result)finish(m.result)});\n    worker.on('error',err=>finish({ok:false,error:err.message}));\n    worker.on('exit',code=>finish({ok:false,cancelled:!!worker.cancelled,error:worker.cancelled?'Extraction stopped. Completed files remain in the output folder.':`Extraction"
+        },
+        {
+          "start": 914,
+          "end": 914,
+          "text": "rocess exited unexpectedly (${code}"
+        },
+        {
+          "start": 915,
+          "end": 915,
+          "text": ". See the output Debug log.`}));\n  });\n});\nipcMain.on('cancel'"
+        },
+        {
+          "start": 916,
+          "end": 917,
+          "text": "()=>{if(job){job.c"
+        },
+        {
+          "start": 918,
+          "end": 920,
+          "text": "ncelled=true;job"
+        },
+        {
+          "start": 921,
+          "end": 922,
+          "text": "t"
+        },
+        {
+          "start": 923,
+          "end": 925,
+          "text": "rmin"
+        },
+        {
+          "start": 927,
+          "end": 928,
+          "text": "e"
+        },
+        {
+          "start": 929,
+          "end": 939,
+          "text": ""
+        },
+        {
+          "start": 940,
+          "end": 941,
+          "text": "}}"
+        },
+        {
+          "start": 961,
+          "end": 962,
+          "text": ""
+        },
+        {
+          "start": 963,
+          "end": 963,
+          "text": "_"
+        },
+        {
+          "start": 965,
+          "end": 966,
+          "text": ""
+        },
+        {
+          "start": 968,
+          "end": 969,
+          "text": ""
+        },
+        {
+          "start": 971,
+          "end": 973,
+          "text": ""
+        },
+        {
+          "start": 974,
+          "end": 975,
+          "text": ""
+        },
+        {
+          "start": 978,
+          "end": 979,
+          "text": ""
+        },
+        {
+          "start": 984,
+          "end": 985,
+          "text": ""
+        },
+        {
+          "start": 986,
+          "end": 987,
+          "text": ""
+        },
+        {
+          "start": 1001,
+          "end": 1002,
+          "text": ""
+        },
+        {
+          "start": 1003,
+          "end": 1007,
+          "text": "win"
+        },
+        {
+          "start": 1008,
+          "end": 1012,
+          "text": "close"
+        },
+        {
+          "start": 1013,
+          "end": 1014,
+          "text": ""
+        },
+        {
+          "start": 1036,
+          "end": 1037,
+          "text": ""
+        },
+        {
+          "start": 1038,
+          "end": 1042,
+          "text": ""
+        },
+        {
+          "start": 1043,
+          "end": 1044,
+          "text": ""
+        },
+        {
+          "start": 1046,
+          "end": 1047,
+          "text": "{if(lastOutput)"
+        },
+        {
+          "start": 1062,
+          "end": 1062,
+          "text": "lastOut"
+        },
+        {
+          "start": 1063,
+          "end": 1063,
+          "text": "ut"
+        },
+        {
+          "start": 1064,
+          "end": 1064,
+          "text": "}"
+        },
+        {
+          "start": 1067,
+          "end": 1114,
+          "text": ""
+        }
+      ]
+    },
+    "package.json": {
+      "sourceSHA256": "994f16d8b6d2e7ff2de40352a24aa427bdfb82f843277319d957c138ef1ea40d",
+      "resultSHA256": "8b1e82c86b167cecc9773a6487bd7c146ebe7a10ebcce3e3eb449c10b681ba3a",
+      "edits": [
+        {
+          "start": 52,
+          "end": 52,
+          "text": "-mac.1"
+        },
+        {
+          "start": 200,
+          "end": 201,
+          "text": ""
+        },
+        {
+          "start": 231,
+          "end": 232,
+          "text": ""
+        },
+        {
+          "start": 286,
+          "end": 287,
+          "text": ""
+        },
+        {
+          "start": 289,
+          "end": 290,
+          "text": "16"
+        },
+        {
+          "start": 291,
+          "end": 292,
+          "text": "3"
+        },
+        {
+          "start": 299,
+          "end": 299,
+          "text": "\n"
+        }
+      ]
+    },
+    "preload.js": {
+      "sourceSHA256": "d556d2bde59bb49b3893dab3c27fbd827a59d29c941a50170800e8cf81713100",
+      "resultSHA256": "02a24366e33c865cd4038d51209de5ec9e0f1b67acad0a80969b85b6539ad8a6",
+      "edits": [
+        {
+          "start": 110,
+          "end": 110,
+          "text": "\n  onOpen: cb => ipcRenderer.on('open-files', (_, p) => cb(p)),\n  onBrowse: cb => ipcRenderer.on('browse', cb),\n  cancel: () => ipcRenderer.send('cancel'),"
+        },
+        {
+          "start": 344,
+          "end": 344,
+          "text": "fileURL: (dir, file) => 'file://' + (dir + '/' + file).split('/').map(encodeURIComponent).join('/'),\n  "
+        }
+      ]
+    },
+    "record.js": {
+      "sourceSHA256": "387b9ab92470670d2f1b63a2d43d4d3b12c54797044b90a249f11151a1648b4f",
+      "resultSHA256": "5ddec7457533c6a89089a4bf6c5b8f55891ce0f11369b595618f40e7b0ded550",
+      "edits": [
+        {
+          "start": 667,
+          "end": 667,
+          "text": "name = process.platform === 'darwin' ? 'snes9x_libretro.dylib' : process.platform === 'win32' ? 'snes9x_libretro.dll' : 'snes9x_libretro.so';\n  const "
+        },
+        {
+          "start": 723,
+          "end": 725,
+          "text": ""
+        },
+        {
+          "start": 726,
+          "end": 726,
+          "text": "am"
+        },
+        {
+          "start": 727,
+          "end": 744,
+          "text": ""
+        },
+        {
+          "start": 777,
+          "end": 779,
+          "text": ""
+        },
+        {
+          "start": 780,
+          "end": 780,
+          "text": "am"
+        },
+        {
+          "start": 781,
+          "end": 798,
+          "text": ""
+        },
+        {
+          "start": 5798,
+          "end": 5798,
+          "text": "smw = require('./smw');\n  if (smw.supports(rom)) return smw.ripSmw(rom, dir, emit, log);\n  const "
+        }
+      ]
+    },
+    "render-worker.js": {
+      "sourceSHA256": "d72be61919f58912546cff58ba9c4385a893991d7da0ecb53838656037643e6d",
+      "resultSHA256": "f547942a5fd625302144f7823021f8c544533cb6d92fc0921a4b45ee16b6ddc7",
+      "edits": [
+        {
+          "start": 141,
+          "end": 223,
+          "text": ""
+        },
+        {
+          "start": 273,
+          "end": 373,
+          "text": ""
+        },
+        {
+          "start": 529,
+          "end": 574,
+          "text": ""
+        },
+        {
+          "start": 611,
+          "end": 611,
+          "text": "Uin"
+        },
+        {
+          "start": 612,
+          "end": 612,
+          "text": "8Array.fro"
+        },
+        {
+          "start": 613,
+          "end": 613,
+          "text": "(s"
+        },
+        {
+          "start": 614,
+          "end": 614,
+          "text": "c)"
+        }
+      ]
+    },
+    "rip.js": {
+      "sourceSHA256": "6fb05847c0bfde2c94b5d52bc290dcb49f6b8a54d4e2cce81556d8b8046169c7",
+      "resultSHA256": "9f1cae2fa799ef2903962fe0eeccd76a546ca2a37d116395d6bcfc6030942f76",
+      "edits": [
+        {
+          "start": 568,
+          "end": 1461,
+          "text": ""
+        },
+        {
+          "start": 5416,
+          "end": 5417,
+          "text": ""
+        },
+        {
+          "start": 5418,
+          "end": 5421,
+          "text": "nput"
+        },
+        {
+          "start": 5424,
+          "end": 5425,
+          "text": "require('./input').lo"
+        },
+        {
+          "start": 5426,
+          "end": 5426,
+          "text": "dInpu"
+        },
+        {
+          "start": 5427,
+          "end": 5435,
+          "text": ""
+        },
+        {
+          "start": 5458,
+          "end": 5459,
+          "text": "inp"
+        },
+        {
+          "start": 5460,
+          "end": 5470,
+          "text": ""
+        },
+        {
+          "start": 5471,
+          "end": 5489,
+          "text": ""
+        },
+        {
+          "start": 5491,
+          "end": 5507,
+          "text": "om"
+        },
+        {
+          "start": 5609,
+          "end": 5613,
+          "text": "input.n"
+        },
+        {
+          "start": 5616,
+          "end": 5616,
+          "text": ".replace"
+        },
+        {
+          "start": 5617,
+          "end": 5617,
+          "text": "/[<>:\"/\\\\|?*]+/g, '').replace(/^\\.+$/, '').trim() || 'SNES_ROM';\n    "
+        },
+        {
+          "start": 5618,
+          "end": 5618,
+          "text": "s.mkd"
+        },
+        {
+          "start": 5619,
+          "end": 5620,
+          "text": "rSync(d"
+        },
+        {
+          "start": 5622,
+          "end": 5622,
+          "text": "ktop, {recursive: true}"
+        },
+        {
+          "start": 5629,
+          "end": 5633,
+          "text": "le"
+        },
+        {
+          "start": 5665,
+          "end": 5665,
+          "text": ", suffix = 2;\n    while (fs.existsSync(dir)) dir = path.join(desktop, `${name} (${suffix++})`)"
+        },
+        {
+          "start": 5687,
+          "end": 5687,
+          "text": ");\n    fs.mkdirSync(cacheDir"
+        },
+        {
+          "start": 5690,
+          "end": 5691,
+          "text": ""
+        },
+        {
+          "start": 5701,
+          "end": 5702,
+          "text": ""
+        },
+        {
+          "start": 5706,
+          "end": 5707,
+          "text": ""
+        },
+        {
+          "start": 5853,
+          "end": 5854,
+          "text": ""
+        },
+        {
+          "start": 5855,
+          "end": 5857,
+          "text": "nput.part"
+        },
+        {
+          "start": 5858,
+          "end": 5865,
+          "text": ""
+        },
+        {
+          "start": 6205,
+          "end": 6206,
+          "text": ""
+        },
+        {
+          "start": 6207,
+          "end": 6209,
+          "text": "nput.part"
+        },
+        {
+          "start": 6210,
+          "end": 6217,
+          "text": ""
+        },
+        {
+          "start": 6261,
+          "end": 6262,
+          "text": ""
+        },
+        {
+          "start": 6263,
+          "end": 6265,
+          "text": "nput.part"
+        },
+        {
+          "start": 6266,
+          "end": 6273,
+          "text": ""
+        },
+        {
+          "start": 6285,
+          "end": 6286,
+          "text": ""
+        },
+        {
+          "start": 6287,
+          "end": 6289,
+          "text": "nput.part"
+        },
+        {
+          "start": 6290,
+          "end": 6297,
+          "text": ""
+        },
+        {
+          "start": 6475,
+          "end": 6475,
+          "text": "warnings = [];\n    const "
+        },
+        {
+          "start": 6629,
+          "end": 6630,
+          "text": ""
+        },
+        {
+          "start": 6631,
+          "end": 6637,
+          "text": "nput.romPath"
+        },
+        {
+          "start": 6673,
+          "end": 6673,
+          "text": "\n      warnings.push('Full music extraction failed: ' + e.message);"
+        },
+        {
+          "start": 6838,
+          "end": 6838,
+          "text": "MISSI"
+        },
+        {
+          "start": 6839,
+          "end": 6849,
+          "text": "G;"
+        },
+        {
+          "start": 6851,
+          "end": 6854,
+          "text": "E"
+        },
+        {
+          "start": 6859,
+          "end": 6860,
+          "text": " TH"
+        },
+        {
+          "start": 6861,
+          "end": 6865,
+          "text": " M"
+        },
+        {
+          "start": 6866,
+          "end": 6867,
+          "text": "C"
+        },
+        {
+          "start": 6869,
+          "end": 6890,
+          "text": "PP"
+        },
+        {
+          "start": 8720,
+          "end": 8720,
+          "text": "warnings, "
+        }
+      ]
+    },
+    "spc.js": {
+      "sourceSHA256": "fc729620d5ad0afccdb2751a0b9aa7493f127be95dcfce3f8b0d107fdb72af83",
+      "resultSHA256": "64b65f072cc6ee0b9d764bfe3fb8d2864b1bea1531b6baa75c2c99ab3b4b1e06",
+      "edits": [
+        {
+          "start": 1574,
+          "end": 1574,
+          "text": "ports = null, "
+        },
+        {
+          "start": 2334,
+          "end": 2334,
+          "text": "if (ports) { if (ports.length !== 4 || ports.some(v => !Number.isInteger(v) || v < 0 || v > 255)) throw new Error('Invalid SPC ports'); for(let i=0;i<4;i++) o[R+0xf4+i]=ports[i]; }\n  "
+        }
+      ]
+    }
+  },
+  "derivedFiles": {
+    "parts.js": {
+      "pieces": [
+        {
+          "text": "const fs = require('fs'), path = require('path');\n"
+        },
+        {
+          "source": "rip.js",
+          "start": 670,
+          "end": 783
+        },
+        {
+          "source": "rip.js",
+          "start": 825,
+          "end": 1297
+        },
+        {
+          "text": "\nmodule.exports = {gatherParts};\n"
+        }
+      ],
+      "resultSHA256": "058ef229b95ff3d9d63e40a9d9a30d5cbbe94c99d7e46fb9ff61cc3f019c3de0"
+    }
+  }
+}

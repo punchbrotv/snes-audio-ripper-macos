@@ -1,0 +1,18 @@
+# Locally reconstructed original app, private test inputs and generated artifacts
+app/
+upstream/
+node_modules/
+.npm-cache/
+.electron-cache/
+.cache/
+build/
+dist/
+output/
+test-output/
+tests/output/
+tests/*.log
+tests/*.sfc
+tests/*.spc
+tests/packaged-result.json
+tests/probe-smw.cjs
+.DS_Store

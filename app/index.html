@@ -1,0 +1,249 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>SNES Audio Ripper</title>
+<style>
+*{box-sizing:border-box;user-select:none}
+body{margin:0;background:#2a2a3a;font-family:"Lucida Console","Courier New",monospace;color:#9fe;overflow:hidden}
+.win{border:2px solid;border-color:#7d7d9a #15151f #15151f #7d7d9a;background:linear-gradient(#4a4a62,#2c2c3d);height:100vh;display:flex;flex-direction:column;padding:3px;gap:4px}
+.title{height:30px;padding-left:78px!important;display:flex;align-items:center;justify-content:space-between;padding:0 3px;-webkit-app-region:drag;background:linear-gradient(#5b6bd6,#2b2f78);color:#dfe;font-size:10px;letter-spacing:2px}
+.title .ico{height:14px;width:14px;margin-right:5px;image-rendering:auto;-webkit-app-region:drag}
+.title b{background:repeating-linear-gradient(0deg,transparent 0 2px,#ffffff30 2px 3px);flex:1;margin:0 8px;height:9px}
+.title span{-webkit-app-region:no-drag;cursor:pointer;padding:0 5px;background:#4a4a62;border:1px solid #9a9ab8;margin-left:2px;color:#fff}
+.title span:hover{background:#e44}
+.top{display:flex;gap:6px}
+.lcd{background:#000;border:2px solid;border-color:#111 #6a6a85 #6a6a85 #111;padding:4px 6px;height:76px;flex:1;position:relative;min-width:0}
+.time{font-size:30px;color:#3f6;text-shadow:0 0 6px #3f6;letter-spacing:2px}
+.info{font-size:10px;color:#3f6;position:absolute;left:6px;right:4px;bottom:3px;line-height:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info #l2{color:#6c9}
+canvas{background:#031019;border:2px solid;border-color:#111 #6a6a85 #6a6a85 #111;width:140px;height:76px}
+.marq{background:#000;border:2px solid;border-color:#111 #6a6a85 #6a6a85 #111;height:20px;overflow:hidden;white-space:nowrap;color:#3f6;font-size:12px;line-height:16px;text-shadow:0 0 4px #3f6}
+.marq span{display:inline-block;padding-left:100%;animation:m 14s linear infinite}
+@keyframes m{to{transform:translateX(-100%)}}
+.seek{height:16px;background:#010a05;border:2px solid;border-color:#111 #6a6a85 #6a6a85 #111;position:relative;overflow:hidden}
+.seek i{position:absolute;left:0;top:1px;bottom:1px;width:0;transition:width .25s ease-out;background:linear-gradient(90deg,#0f9d46 0%,#22b85a 23%,#2338c8 27%,#3a50e6 48%,#f5c400 52%,#ffd83a 73%,#e32631 77%,#ff4150 100%);-webkit-mask:repeating-linear-gradient(90deg,#000 0 6px,transparent 6px 8px)}
+.seek i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,#ffffff55 50%,transparent) 0 0/70px 100% repeat-x;animation:sh .8s linear infinite}
+@keyframes sh{to{background-position:70px 0}}
+.seek:not(.on) i::after{animation:none;opacity:0}
+.seek b{position:absolute;top:0;bottom:0;width:4px;left:0;background:#fff;box-shadow:0 0 8px 2px #f5c400;opacity:0;transition:left .25s ease-out,opacity .3s}
+.seek.on b{opacity:1}
+.seek span{position:absolute;right:5px;top:0;font-size:10px;line-height:12px;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,0 0 3px #000}
+.info #l1.done{font-size:13px;color:#fff;text-shadow:0 0 8px #3f6,0 0 14px #3f6;line-height:15px}
+.blink{animation:bl .7s steps(2,start) 8}@keyframes bl{50%{opacity:.15}}
+.btns{display:flex;gap:3px}
+.btns button{flex:1;height:22px;background:linear-gradient(#8a8aa8,#4d4d66);border:2px solid;border-color:#c5c5dc #1d1d2b #1d1d2b #c5c5dc;color:#fff;font:12px monospace;cursor:pointer}
+.btns button:active{border-color:#1d1d2b #c5c5dc #c5c5dc #1d1d2b}
+.drop{flex:1;min-height:0;background:#000;border:2px solid;border-color:#111 #6a6a85 #6a6a85 #111;position:relative;display:flex;flex-direction:column}
+
+.list{flex:1;overflow-y:auto;padding:3px 5px;font-size:11px;color:#3f6;line-height:14px}
+.list div{display:flex;justify-content:space-between;gap:8px;padding:0 3px;cursor:default}
+.list.play div{cursor:pointer}.list.play div:hover{background:#063}
+.list div.sel{background:#00c;color:#fff}
+.list span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seek.on.pl{cursor:pointer}#bDir{font-size:9px}
+.list::-webkit-scrollbar{width:10px}.list::-webkit-scrollbar-thumb{background:#6a6a85}
+.hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#3f6;font-size:15px;line-height:24px;text-shadow:0 0 8px #3f6;border:2px dashed #2a8;margin:6px;pointer-events:none}
+.hint small{font-size:10px;color:#6a9;text-shadow:none}
+.drop.over .hint{background:#042;color:#fff}
+#art{height:76px;width:auto;max-width:108px;flex:none;display:block;object-fit:contain;align-self:flex-start}
+#art.px{image-rendering:pixelated}
+.row{display:flex;gap:12px;align-items:flex-start}
+.rom{min-width:0;flex:1;padding-top:2px}
+#rn{font-size:12px;line-height:14px;color:#3f6;text-shadow:0 0 5px #3f6;white-space:nowrap;overflow:hidden}
+#rs{font-size:11px;line-height:14px;color:#6c9}
+.info>div{overflow:hidden;white-space:nowrap}
+.mq-on span{display:inline-block;animation:mqx var(--t,8s) ease-in-out infinite alternate}
+@keyframes mqx{0%,14%{transform:translateX(0)}86%,100%{transform:translateX(var(--dist,0px))}}
+.hide{display:none!important}
+</style></head><body>
+<div class="win">
+ <div class="title"><img class="ico" src="icon.png" alt="">SNES AUDIO RIPPER<b></b></div>
+ <div class="top">
+  <img id="art" class="hide" alt="">
+  <div class="lcd"><div class="row"><div class="time" id="time">00:00</div><div class="rom"><div id="rn"></div><div id="rs"></div></div></div><div class="info"><div id="l1">STOP</div><div id="l2">32 kHz  128 kbps  MONO</div></div></div>
+  <canvas id="vis" width="140" height="76"></canvas>
+ </div>
+ <div class="marq"><span id="marq">*** DROP YOUR SNES GAME HERE *** .SFC .SMC .ZIP AND SPLIT FILES SUPPORTED ***</span></div>
+ <div class="seek" id="seek"><i id="bar"></i><b id="knob"></b><span id="pct"></span></div>
+ <div class="btns"><button title="Open ROM" id="bOpen">&#9167;</button><button title="Previous" id="bPrev">|&#9664;</button><button title="Play / Pause" id="bPlay">&#9654;</button><button title="Stop" id="bStop">&#9632;</button><button title="Next" id="bNext">&#9654;|</button><button title="Open output folder" id="bDir">FOLDER</button></div>
+ <div class="drop" id="drop">
+  <div class="list" id="list"></div>
+  <div class="hint" id="hint">DROP YOUR SNES GAME HERE<small>ROM or ZIP · click to browse</small></div>
+ </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let busy=false,outDir=null,t0=0,timer=null,level=0,tracks=[],ti=-1,playing=false;
+const setMarq=t=>{$('marq').textContent='*** '+t+' ***'};
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
+const setBar=p=>{$('bar').style.width=(p*100)+'%';$('knob').style.left='calc('+(p*100)+'% - 4px)';$('pct').textContent=p>0?Math.round(p*100)+'%':''};
+const IDLE='32 kHz  128 kbps  MONO';
+// Text in the top display that is wider than the display slides back and forth so all of it can be read
+function setScrollable(el,v){
+  el.dataset.t=v;const sp=document.createElement('span');sp.textContent=v;el.replaceChildren(sp);el.classList.remove('mq-on');
+  requestAnimationFrame(()=>{const over=sp.offsetWidth-el.clientWidth;
+    if(over>2){el.style.setProperty('--dist',(-over-6)+'px');el.style.setProperty('--t',Math.max(4,over/22)+'s');el.classList.add('mq-on')}});
+}
+['l1','l2','rn','rs'].forEach(id=>{const el=$(id);Object.defineProperty(el,'textContent',{configurable:true,set(v){setScrollable(el,String(v))},get(){return el.dataset.t||''}})});
+const audio=new Audio();audio.preload='auto';
+const urlFor=f=>api.fileURL(outDir,f);
+const nameOf=t=>t.file.replace(/^.*\//,'').replace(/\.mp3$/,'');
+const PLAY_ICON='&#9654;',PAUSE_ICON='&#10074;&#10074;';
+function buildList(){
+  const order=f=>f.startsWith('Music/')?0:f.startsWith('SFX/')?1:2;
+  tracks.sort((a,b)=>order(a.file)-order(b.file)||a.file.localeCompare(b.file,undefined,{numeric:true}));
+  const L=$('list');L.innerHTML='';L.classList.add('play');
+  tracks.forEach((t,i)=>{
+    const d=document.createElement('div'),a=document.createElement('span'),b=document.createElement('span');
+    a.textContent=(i+1)+'. '+nameOf(t);b.textContent=fmt(t.secs);d.append(a,b);d.onclick=()=>play(i);L.appendChild(d);
+  });
+  L.scrollTop=0;
+}
+function markSel(){[...$('list').children].forEach((d,i)=>d.classList.toggle('sel',i===ti));const el=$('list').children[ti];if(el)el.scrollIntoView({block:'nearest'})}
+function showNow(){
+  const t=tracks[ti];if(!t)return;
+  $('l1').classList.remove('blink');$('l1').classList.add('done');$('l1').textContent='NOW PLAYING';
+  $('l2').textContent=nameOf(t)+'  '+fmt(t.secs)+'  ('+(ti+1)+'/'+tracks.length+')';
+  setMarq('NOW PLAYING: '+nameOf(t).toUpperCase()+'  -  '+(t.file.startsWith('Music/')?'MUSIC':'SOUND EFFECT'));
+}
+function play(i){
+  if(busy||!tracks.length)return;
+  ti=(i+tracks.length)%tracks.length;audio.src=urlFor(tracks[ti].file);
+  audio.play().catch(e=>{$('l1').textContent='ERROR';$('l2').textContent='CANNOT PLAY: '+e.message});
+  playing=true;level=.5;$('bPlay').innerHTML=PAUSE_ICON;$('seek').classList.add('on','pl');markSel();showNow();
+}
+function toggle(){
+  if(busy||!tracks.length)return;
+  if(ti<0){play(0);return}
+  if(playing){audio.pause();playing=false;$('bPlay').innerHTML=PLAY_ICON;$('l1').classList.remove('done');$('l1').textContent='PAUSED'}
+  else{audio.play();playing=true;level=.5;$('bPlay').innerHTML=PAUSE_ICON;showNow()}
+}
+function stopAudio(){
+  audio.pause();try{audio.currentTime=0}catch(e){}
+  playing=false;level=0;$('bPlay').innerHTML=PLAY_ICON;$('seek').classList.remove('on','pl');setBar(0);$('time').textContent='00:00';
+  if(tracks.length&&!busy){$('l1').classList.remove('done');$('l1').textContent='STOPPED';if(ti>=0)$('l2').textContent=nameOf(tracks[ti])}
+}
+audio.ontimeupdate=()=>{if(audio.duration)setBar(audio.currentTime/audio.duration);$('time').textContent=fmt(audio.currentTime)};
+audio.onended=()=>{if(ti<tracks.length-1)play(ti+1);else{stopAudio();$('l1').textContent='END OF LIST'}};
+audio.onerror=()=>{playing=false;$('bPlay').innerHTML=PLAY_ICON;$('l1').classList.remove('done');$('l1').textContent='ERROR';$('l2').textContent='COULD NOT PLAY '+(tracks[ti]?tracks[ti].file:'')};
+function reset(){
+  if(busy)return;
+  audio.pause();audio.removeAttribute('src');tracks=[];ti=-1;playing=false;$('bPlay').innerHTML=PLAY_ICON;$('list').classList.remove('play');$('seek').classList.remove('pl');
+  $('list').innerHTML='';$('art').classList.add('hide');$('rn').textContent='';$('rs').textContent='';$('hint').classList.remove('hide');setBar(0);$('seek').classList.remove('on');$('l1').classList.remove('done','blink');
+  $('time').textContent='00:00';$('l1').textContent='STOP';$('l2').textContent=IDLE;setMarq('DROP YOUR SNES GAME HERE');outDir=null;level=0;
+}
+async function start(paths){
+  if(busy||!paths.length)return;
+  reset();busy=true;$('hint').classList.add('hide');$('seek').classList.add('on');$('l1').textContent='PLAY  LOADING ROM...';$('l2').textContent='';
+  t0=Date.now();timer=setInterval(()=>$('time').textContent=fmt((Date.now()-t0)/1000),250);level=.4;
+  let r; try { r=await api.rip(paths); } catch(e) {r={ok:false,error:e.message}};
+  clearInterval(timer);busy=false;level=0;
+  if(r.ok){outDir=r.dir;setBar(1);$('seek').classList.remove('on');$('l1').textContent='EXTRACTION COMPLETE!';$('l1').classList.add('done','blink');$('l2').textContent=r.music+' MUSIC TRACKS   '+r.sfx+' SFX';buildList();
+    if(r.warnings&&r.warnings.length)$('l1').textContent='SAMPLE EXTRACTION ONLY';
+    setMarq('EXTRACTION COMPLETE! '+r.music+' MUSIC TRACKS AND '+r.sfx+' SFX ('+r.count+' FILES) SAVED TO OUTPUT FOLDER: '+r.name.toUpperCase()+' - PRESS PLAY TO LISTEN');}
+  else{$('l1').textContent=r.cancelled?'STOPPED':'ERROR';$('l2').textContent=r.cancelled?'EXTRACTION CANCELLED':r.error;$('seek').classList.remove('on');setMarq(r.error.toUpperCase());$('hint').classList.remove('hide')}
+}
+api.onProgress(p=>{
+  if(!busy)return;   // ignore any late progress event once the result is in
+  if(p.phase==='meta'){
+    $('rn').textContent=p.title;$('rs').textContent=p.size;
+    if(p.cover){$('art').src='data:image/png;base64,'+p.cover;$('art').classList.add('px');$('art').classList.remove('hide')}
+    setMarq('NOW RIPPING: '+p.title.toUpperCase());return;
+  }
+  if(p.phase==='art'){
+    if(p.box){$('art').src='data:image/png;base64,'+p.box;$('art').classList.remove('px','hide')}
+    return;
+  }
+  if(p.phase==='note'){setMarq(p.text);return}
+  if(p.phase==='record'){
+    if(p.text)setMarq(p.text);
+    if(p.pct!=null){setBar(p.pct);$('l1').textContent=(p.label||'WORKING')+'  '+Math.round((p.local||0)*100)+'%';$('l2').textContent=p.sub||'';level=.65}
+    return;
+  }
+  if(p.phase==='track'){
+    level=.7;$('l1').textContent='SAVED  '+p.count+' FILES';$('l2').textContent=p.file;
+    tracks.push({file:p.file,secs:p.secs});
+    const d=document.createElement('div');d.innerHTML='<span>'+p.file.replace('.mp3','')+'</span><span>'+fmt(p.secs)+'</span>';
+    $('list').appendChild(d);$('list').scrollTop=1e9;return;
+  }
+  if(p.phase==='scan'){
+    if(p.pct!=null){$('l1').textContent='SCANNING ROM  '+Math.round(p.pct*200)+'%';$('l2').textContent='SAMPLES FOUND: '+(p.found||0);setBar(p.pct);level=.45}
+    return;
+  }
+  if(p.phase==='encode'){
+    $('l1').textContent='ENCODING MP3  '+p.count+' / '+p.total;$('l2').textContent=p.file;
+    setBar(p.pct);level=p.lvl;
+    tracks.push({file:p.file,secs:p.secs});
+    const d=document.createElement('div');d.innerHTML='<span>'+p.count+'. '+p.file.replace('.mp3','')+'</span><span>'+fmt(p.secs)+'</span>';
+    $('list').appendChild(d);$('list').scrollTop=1e9;
+  }
+});
+const drop=$('drop');
+['dragenter','dragover'].forEach(e=>document.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(e=>document.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over')}));
+document.addEventListener('drop',ev=>start([...ev.dataTransfer.files].map(f=>api.pathFor(f))));
+const browse=async()=>{if(!busy)start(await api.pick())};
+api.onOpen(start);api.onBrowse(browse);
+drop.addEventListener('click',()=>{if(!busy&&!outDir)browse()});
+$('bOpen').onclick=browse;$('bPlay').onclick=toggle;$('bStop').onclick=()=>busy?api.cancel():stopAudio();
+$('bPrev').onclick=()=>play(ti<0?0:ti-1);$('bNext').onclick=()=>play(ti<0?0:ti+1);$('bDir').onclick=()=>outDir&&api.open(outDir);
+$('seek').addEventListener('click',e=>{if(busy||ti<0||!audio.duration)return;const r=$('seek').getBoundingClientRect();audio.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*audio.duration});
+// Visualizer: old Alpine-deck LCD. Dark until ripping or playback starts, then dolphins leap over a beat-driven sea; fades out when done.
+const c=$('vis'),g=c.getContext('2d'),N=20,W=46,H=25,PX=3,OX=1,OY=1;
+const h=new Array(N).fill(0),buf=new Uint8Array(W*H),surf=new Int16Array(W).fill(H),dol=[],spl=[];
+let T=0,env=0,last=performance.now(),lastBeat=-1;
+const put=(x,y,v)=>{x=Math.round(x);y=Math.round(y);if(x<0||x>=W||y<0||y>=H||y>=surf[x])return;buf[y*W+x]=v};
+function spawn(){
+  if(dol.length>=2)return;
+  const dir=Math.random()<.5?-1:1;
+  dol.push({age:0,dur:1.25+Math.random()*.3,dir,x0:dir>0?2+Math.random()*8:W-3-Math.random()*8,w:20+Math.random()*10,hgt:12+Math.random()*6,wy:H-4,s:.85+Math.random()*.25,prev:-.3});
+}
+const P=(d,t)=>({x:d.x0+d.dir*d.w*t,y:d.wy-d.hgt*4*t*(1-t)});
+function splash(d,t){for(let i=0;i<7;i++){const p=P(d,t);spl.push({x:p.x,y:d.wy-1,vx:(Math.random()-.5)*26,vy:-(14+Math.random()*20),life:.45})}}
+function drawDolphin(d,tau){
+  // body = chain of discs spaced ~1.2px apart along the leap arc, so it bends naturally
+  const R=[.8,1.4,1.8,1.9,1.8,1.5,1.2,.9,.6,.4],pts=[];let tt=tau;
+  for(let k=0;k<R.length;k++){pts.push(P(d,tt));tt-=1.15*d.s/Math.hypot(d.w,4*d.hgt*(1-2*tt));}
+  const head=pts[0],prev=P(d,tau-.01),ahead=P(d,tau+.03);
+  let tx=head.x-prev.x,ty=head.y-prev.y;const L=Math.hypot(tx,ty)||1;tx/=L;ty/=L;
+  const nx=d.dir>0?ty:-ty,ny=d.dir>0?-tx:tx;                       // "up" side of the body
+  pts.forEach((p,k)=>{const r=R[k]*d.s;for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++)if(dx*dx+dy*dy<=r*r+.3)put(p.x+dx,p.y+dy,2)});
+  put(ahead.x,ahead.y,2);put((head.x+ahead.x)/2,(head.y+ahead.y)/2,2);   // beak
+  const f=pts[3];put(f.x+nx*2.6,f.y+ny*2.6,2);put(f.x+nx*3.3-tx*1.2,f.y+ny*3.3-ty*1.2,2); // dorsal fin
+  const t=pts[9];put(t.x-tx*1.2+nx*1.8,t.y-ty*1.2+ny*1.8,2);put(t.x-tx*1.2-nx*1.8,t.y-ty*1.2-ny*1.8,2); // tail flukes
+}
+function draw(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  const anim=busy||playing;env+=((anim?1:0)-env)*Math.min(1,dt*(anim?5:4));T+=dt;
+  const beat=T*2.0,ph=beat%1,bar=Math.floor(beat)%4;
+  const kick=(bar===0||bar===2)?Math.pow(1-ph,2.5):.25*Math.pow(1-ph,2),snare=(bar===1||bar===3)?Math.pow(1-ph,3):0,hat=Math.pow(1-((beat*2)%1),4)*.7,mel=.5+.5*Math.sin(beat*.9);
+  for(let i=0;i<N;i++){
+    const x=i/(N-1);
+    let v=.12+.2*Math.random()+kick*(1-x)*1.05+snare*Math.exp(-Math.pow((x-.45)*3,2))*.9+hat*x*.8+.75*Math.exp(-Math.pow((x-mel)*4.5,2))*(.55+.45*Math.sin(beat*6+i))+.1*level;
+    v=Math.min(1,v*.8)*env;const t=v*72;h[i]+=(t-h[i])*(t>h[i]?.6:.2);
+  }
+  const bi=Math.floor(beat);
+  if(bi!==lastBeat){lastBeat=bi;if((busy||playing)&&env>.5&&(bi%4===0||(bi%4===2&&Math.random()<.6)))spawn()}
+  buf.fill(0);
+  // sea level follows the spectrum, with rolling ripples
+  for(let x=0;x<W;x++){
+    const p=x/(W-1)*(N-1),i0=Math.floor(p),f=p-i0,hv=(h[i0]*(1-f)+h[Math.min(N-1,i0+1)]*f)/72;
+    const wr=Math.round((2+hv*8+Math.sin(x*.55+T*4.5)*.9+Math.sin(x*.21-T*2.2)*.7)*Math.min(1,env*1.6));
+    surf[x]=wr>0?H-wr:H;
+  }
+  for(const d of dol){
+    d.age+=dt;const tau=-.3+1.6*d.age/d.dur;
+    if(d.prev<0&&tau>=0)splash(d,0);if(d.prev<1&&tau>=1)splash(d,1);d.prev=tau;
+    drawDolphin(d,tau);d.done=tau>1.4;
+  }
+  for(let i=dol.length-1;i>=0;i--)if(dol[i].done)dol.splice(i,1);
+  for(let i=spl.length-1;i>=0;i--){const p=spl[i];p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=95*dt;if(p.life<=0)spl.splice(i,1);else put(p.x,p.y,2)}
+  for(let x=0;x<W;x++)if(surf[x]<H){buf[surf[x]*W+x]=2;for(let y=surf[x]+1;y<H;y++)if((x+y)%2===0)buf[y*W+x]=1}
+  // render as a dot-matrix LCD: unlit / half-lit / lit
+  g.clearRect(0,0,140,76);g.shadowBlur=0;
+  const mid=new Path2D(),on=new Path2D(),off=new Path2D();
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const v=buf[y*W+x];(v===2?on:v===1?mid:off).rect(OX+x*PX,OY+y*PX,2,2)}
+  g.fillStyle='#0b2533';g.fill(off);g.fillStyle='#14829f';g.fill(mid);
+  g.shadowColor='#6ff';g.shadowBlur=5;g.fillStyle='#9ff8ff';g.fill(on);g.shadowBlur=0;
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script></body></html>

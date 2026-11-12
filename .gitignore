@@ -1,5 +1,7 @@
-# Locally reconstructed original app, private test inputs and generated artifacts
-app/
+# Dependencies, private test inputs, and build artifacts
+app/node_modules/
+app/cores/
+app/after-pack.js
 upstream/
 node_modules/
 .npm-cache/
@@ -14,5 +16,5 @@ tests/*.log
 tests/*.sfc
 tests/*.spc
 tests/packaged-result.json
-tests/probe-smw.cjs
+tests/probe-*.cjs
 .DS_Store

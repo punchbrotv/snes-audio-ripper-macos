@@ -1,0 +1,13 @@
+{
+  "name": "snes-audio-ripper",
+  "version": "1.0.0-mac.1",
+  "description": "Drop a SNES ROM, get its audio as MP3s on your Desktop.",
+  "main": "main.js",
+  "dependencies": {
+    "@breezystack/lamejs": "1.2.7",
+    "spc-converter": "1.0.0"
+  },
+  "optionalDependencies": {
+    "koffi": "2.16.3"
+  }
+}

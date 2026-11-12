@@ -10,14 +10,15 @@ fs.rmSync(dest,{recursive:true,force:true});
 run('/usr/bin/ditto',[electron,dest]);
 const contents=path.join(dest,'Contents'),resources=path.join(contents,'Resources');
 fs.rmSync(path.join(resources,'default_app.asar'),{force:true});
-fs.cpSync(path.join(root,'app'),path.join(resources,'app'),{recursive:true,filter:src=>{
+fs.cpSync(path.join(root,'app'),path.join(resources,'app'),{recursive:true,verbatimSymlinks:true,filter:src=>{
   const relative=path.relative(path.join(root,'app'),src);
-  if(relative==='cores'||relative==='after-pack.js')return false;
+  if(relative==='cores'||relative==='after-pack.js'||relative==='README.md')return false;
   if(relative.startsWith('node_modules/koffi/build/koffi/'))return relative.split('/')[4]==='darwin_arm64';
   if(/^node_modules\/koffi\/(src|vendor|doc)(\/|$)/.test(relative))return false;
   return true;
 }});
 fs.cpSync(path.join(root,'app/cores'),path.join(resources,'cores'),{recursive:true});
+fs.copyFileSync(path.join(root,'LICENSE'),path.join(resources,'PORT-LICENSE.txt'));
 for(const name of ['LICENSE','LICENSES.chromium.html'])fs.copyFileSync(path.join(root,'node_modules/electron/dist',name),path.join(resources,name));
 if(fs.existsSync(path.join(root,'CREDITS.md')))fs.copyFileSync(path.join(root,'CREDITS.md'),path.join(resources,'CREDITS.md'));
 if(fs.existsSync(path.join(root,'THIRD_PARTY_NOTICES.md')))fs.copyFileSync(path.join(root,'THIRD_PARTY_NOTICES.md'),path.join(resources,'THIRD_PARTY_NOTICES.md'));

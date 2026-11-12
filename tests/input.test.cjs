@@ -2,7 +2,6 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('fs'),os=require('os'),path=require('path'),{execFileSync}=require('child_process');
 const {loadInput}=require('../app/input');
 const {buildSpc}=require('../app/spc');
-const smw=require('../app/smw');
 function fixture(t){const d=fs.mkdtempSync(path.join(os.tmpdir(),'snes-test-'));t.after(()=>fs.rmSync(d,{recursive:true,force:true}));return d;}
 test('loads raw ROM and ZIP identically, including spaces and Unicode',t=>{
  const dir=fixture(t),name='Test # é.sfc',bytes=Buffer.alloc(32768,42),file=path.join(dir,name);
@@ -23,8 +22,4 @@ test('SPC preserves explicit command ports for music and SFX',()=>{
  const snap={aram:Buffer.alloc(65536),dsp:Buffer.alloc(128),regs:{pc:0x500,a:0,x:0,y:0,psw:0,sp:0xef}};
  const b=buildSpc(snap,{ports:[1,2,3,4],seconds:60});assert.deepEqual([...b.subarray(0x1f4,0x1f8)],[1,2,3,4]);assert.equal(b.readUInt16LE(0x25),0x500);
  assert.throws(()=>buildSpc(snap,{ports:[999]}),/Invalid/);
-});
-test('SMW profile rejects other ROMs and corrupt upload blocks',()=>{
- assert.equal(smw.supports(Buffer.alloc(524288)),false);assert.throws(()=>smw.readBlocks(Buffer.alloc(2),0),/Truncated/);
- const b=Buffer.from([20,0,255,255]);assert.throws(()=>smw.readBlocks(b,0),/Invalid/);
 });

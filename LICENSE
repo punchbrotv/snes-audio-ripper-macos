@@ -1,6 +1,6 @@
 Scope: This license applies only to original macOS-port contributions in this
 repository (build/setup scripts, tests, new integration/profile code, and original
-changes in the transformation recipe). It does not license the upstream SNES
+changes to the application). It does not license the upstream SNES
 Audio Ripper application, its artwork, third-party dependencies, game ROMs, or
 extracted audio. Those components retain their respective authors' rights and
 terms; see THIRD_PARTY_NOTICES.md.

@@ -28,16 +28,18 @@ class Catalog {
     let music = 0, sfx = 0, skipped = 0;
     for (let i = 0; i < this.tracks.length; i++) {
       const t = this.tracks[i], entry = manifest.tracks[i];
+      const timingOptions = { timing: Names.timingFor(this.options.titleProfile, t.kind, t.label), inferTiming: t.kind === 'Music' };
       this.emit({ phase: 'record', local: i / this.tracks.length, pct: .8 + .2 * i / this.tracks.length, text: `EXPORTING ${selected.toUpperCase()} FROM THE DISCOVERED TRACK CATALOG`, label: `EXPORTING ${selected.toUpperCase()}`, sub: `${i + 1}/${this.tracks.length} DISCOVERED TRACKS` });
       try {
         let bytes;
         if (selected === 'logic') {
           const write = deps.logic || require('./logic').write;
-          entry.project = await write(path.join(this.dir, entry.file), t.source, t.seconds, t.title || t.label);
+          entry.project = await write(path.join(this.dir, entry.file), t.source, t.seconds, t.title || t.label, timingOptions);
         } else if (selected === 'midi') {
-          const result = await midi(t.source, t.seconds, t.title || t.label);
+          const result = await midi(t.source, t.seconds, t.title || t.label, timingOptions);
           if (!result) throw new Error('No recoverable MIDI note events for this sound.');
           bytes = result.bytes;
+          entry.timing = result.timing;
         } else {
           let audio = t.source;
           if (audio.spc) {

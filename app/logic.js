@@ -50,18 +50,19 @@ function runWriter(spec,out){
     child.stdin.end(JSON.stringify(spec));
   });
 }
-async function write(file,audio,seconds,title){
+async function write(file,audio,seconds,title,options={}){
   const data=await Midi.transcribe(audio,seconds,{samples:true});
   if(!data)throw Error('No recoverable instrument note events for this sound.');
   const spec=prepare(data),parent=path.dirname(file);
+  spec.timing=require('./timing').resolve(data.notes,options.timing,options.inferTiming!==false);
   spec.destination=path.resolve(file);
   fs.mkdirSync(parent,{recursive:true});
   if(fs.existsSync(file))throw Error('Refusing to overwrite a Logic project.');
   const stage=fs.mkdtempSync(path.join(parent,'.logic-export-')),project=path.join(stage,'Session.logicx');
   try{
     const result=await runWriter(spec,project);
-    fs.writeFileSync(path.join(project,'SNES Export.json'),JSON.stringify({version:1,title,seconds,...result,noiseNotes:spec.noiseNotes,widePitchRetriggers:spec.retriggers,description:'Original BRR samples with editable notes, loops, pan and pitch bends. Sampler envelopes and console echo/noise/pitch modulation are approximate.'},null,2));
-    fs.renameSync(project,file);return result;
+    fs.writeFileSync(path.join(project,'SNES Export.json'),JSON.stringify({version:1,title,seconds,timing:spec.timing,...result,noiseNotes:spec.noiseNotes,widePitchRetriggers:spec.retriggers,description:'Original BRR samples with editable notes, loops, pan and pitch bends. Sampler envelopes and console echo/noise/pitch modulation are approximate.'},null,2));
+    fs.renameSync(project,file);return {...result,timing:spec.timing};
   }finally{fs.rmSync(stage,{recursive:true,force:true})}
 }
 module.exports={prepare,write,samplerNotes};

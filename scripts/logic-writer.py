@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Create a self-contained Logic session; frozen into the app, never needs user Python."""
-import json, struct, sys, base64, wave, plistlib
+import json, struct, sys, base64, wave, plistlib, math, bisect
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'vendor'))
 from logicx import projectdata as P
@@ -60,16 +60,45 @@ def controller(tick, status, data1, data2):
     return e
 
 
-def performance(notes):
+def musical_clock(timing):
+    origin = timing.get('originSeconds', 0)
+    points = timing.get('tempo', [{'time': 0, 'bpm': 120}])
+    meter = timing.get('meter', [4, 4])
+    if not math.isfinite(origin) or not 0 <= origin <= 600 or not 1 <= len(points) <= 4096:
+        raise ValueError('Invalid musical timing.')
+    if len(meter) != 2 or not isinstance(meter[0], int) or not 1 <= meter[0] <= 32 or meter[1] not in (1, 2, 4, 8, 16):
+        raise ValueError('Invalid meter.')
+    times, bpms, beats = [], [], []
+    beat = 0
+    for p in points:
+        t, bpm = p['time'], p['bpm']
+        if not math.isfinite(t) or not 0 <= t <= 600 or not math.isfinite(bpm) or not 20 <= bpm <= 400 or (times and t <= times[-1]):
+            raise ValueError('Invalid tempo point.')
+        if times: beat += (t-times[-1])*bpms[-1]/60
+        times.append(t); bpms.append(round(bpm, 4)); beats.append(beat)
+    if times[0] != 0: raise ValueError('Tempo map must start at zero.')
+    def position(seconds):
+        i = max(0, bisect.bisect_right(times, seconds)-1)
+        return beats[i]+(seconds-times[i])*bpms[i]/60
+    offset = position(origin)
+    def to_tick(seconds):
+        return max(0, round((position(seconds)-offset)*960))
+    tempo = {0: bpms[max(0, bisect.bisect_right(times, origin)-1)]}
+    for t, bpm in zip(times, bpms):
+        if t > origin: tempo[to_tick(t)] = bpm
+    return to_tick, list(tempo.items()), meter
+
+
+def performance(notes, to_tick=lambda t: round(t*1920)):
     events = []
     for n in notes:
-        start = round(n['start']*1920)
-        length = max(1, round(n['end']*1920)-start)
+        start = to_tick(n['start'])
+        length = max(1, to_tick(n['end'])-start)
         events.append((start, 2, bytearray(P.ProjectData._enc_note_event(start,n['note'],n['velocity'],length,False))))
         events.append((start, 0, controller(start,0xb0,10,n['pan'])))
         for bend in n['bends']:
             if bend['time'] >= n['end']: continue
-            pos = round(bend['time']*1920)
+            pos = to_tick(bend['time'])
             value = max(0,min(16383,round(8192+bend['semitones']/12*8192)))
             events.append((pos,1,controller(pos,0xe0,value&127,value>>7)))
     events.sort(key=lambda e:(e[0],e[1]))
@@ -79,6 +108,7 @@ def performance(notes):
 
 def export(data, out, template):
     groups = data['tracks']
+    to_tick, tempo, meter = musical_clock(data.get('timing', {}))
     if not groups or len(groups)>256: raise ValueError('Logic export supports 1–256 sampler tracks per sound.')
     pd, files = P._resolve_base(None, 'mixed_base')
     P._grow_pool_if_needed(pd, len(groups)-1, P.IdGen())
@@ -97,11 +127,11 @@ def export(data, out, template):
         strips.append(P._ocua_for_channel(pd,ch))
         iv=next(r for r in pd.records if r.tag==b'ivnE' and P._u32(r.raw,8)==ch)
         iv.raw=P._set_ivne_name(iv.raw,g['name'])
-    specs=[(i,[(round(n['start']*1920),n['note'],n['velocity'],max(1,round((n['end']-n['start'])*1920))) for n in g['notes']],0,g['name']) for i,g in enumerate(groups,1)]
+    specs=[(i,[(to_tick(n['start']),n['note'],n['velocity'],max(1,to_tick(n['end'])-to_tick(n['start']))) for n in g['notes']],0,g['name']) for i,g in enumerate(groups,1)]
     region_ids=P.synthesize_midi_regions(pd,specs,prototype=P._baked_infra()['midi_region_proto'])
     for rid,g in zip(region_ids,groups):
         r=next(r for r in pd.records if r.tag==b'qSvE' and P._u32(r.raw,8)==rid)
-        payload=performance(g['notes']);h=bytearray(r.raw[:36]);struct.pack_into('<I',h,28,len(payload));r.raw=bytes(h)+payload
+        payload=performance(g['notes'], to_tick);h=bytearray(r.raw[:36]);struct.pack_into('<I',h,28,len(payload));r.raw=bytes(h)+payload
     for strip,g in zip(strips,groups):
         if strip is None: raise ValueError('Missing Logic channel strip.')
         ordinal=P._u32(strip.raw,12)
@@ -116,7 +146,8 @@ def export(data, out, template):
         pd.records=[r for r in pd.records if not (r.tag==b'UCuA' and P._u32(r.raw,12)==ordinal and struct.unpack_from('<H',r.raw,18)[0]==2)]
         state=sampler(template,data['samples'][g['sample']],g['sample']+'.wav',ordinal,Path(data.get('destination',str(out.resolve())))/'Media'/'Samples')
         pd.records.insert(pd.records.index(strip)+1,P.Record(b'UCuA',state))
-    pd.set_tempo_map([(0,120)])
+    pd.set_tempo_map(tempo)
+    pd.set_meter_map([(0, *meter)])
     encoded=pd.serialize()
     if P.ProjectData.parse(encoded).serialize()!=encoded: raise ValueError('Invalid Logic project structure.')
     P._assemble_bundle(files,out,encoded,added_tracks=len(groups)-2)
@@ -128,6 +159,8 @@ def export(data, out, template):
     # Clear seed metadata unrelated to this newly authored song.
     mp=out/'Alternatives/000/MetaData.plist'
     md=plistlib.loads(mp.read_bytes());md['NumberOfTracks']=len(groups)
+    md['BeatsPerMinute']=tempo[0][1]
+    md['SongSignatureNumerator'],md['SongSignatureDenominator']=meter
     mp.write_bytes(plistlib.dumps(md,fmt=plistlib.FMT_BINARY))
     return {'tracks':len(groups),'samples':len(data['samples']),'notes':sum(len(g['notes']) for g in groups)}
 

@@ -18,7 +18,7 @@ function validate(profile) {
     const key = JSON.stringify([t.kind, t.label]);
     if (seen.has(key)) throw Error('Duplicate discovery label: ' + t.label);
     seen.add(key);
-    return { kind: t.kind, label: t.label, title: t.title.trim() };
+    return { kind: t.kind, label: t.label, title: t.title.trim(), ...(t.timing ? { timing: require('./timing').validate(t.timing) } : {}) };
   });
   return { version: 1, romSha256: profile.romSha256, tracks };
 }
@@ -46,6 +46,9 @@ function load(inputPath, cacheDir, hash, note = () => {}) {
   }
   return null;
 }
+function timingFor(profile, kind, label) {
+  return profile?.tracks.find(t => t.kind === kind && t.label === label)?.timing;
+}
 function titleFor(profile, kind, label) {
   return profile?.tracks.find(t => t.kind === kind && t.label === label)?.title;
 }
@@ -58,4 +61,4 @@ function stem(id, title) {
   safe = chars.join('').replace(/[. ]+$/, '');
   return safe ? `${id} - ${safe}` : id;
 }
-module.exports = { romHash, validate, read, install, load, titleFor, stem };
+module.exports = { romHash, validate, read, install, load, titleFor, timingFor, stem };

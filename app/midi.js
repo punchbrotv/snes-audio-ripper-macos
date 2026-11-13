@@ -4,6 +4,7 @@
 const { SPC700 } = require('./spc700');
 const { decodeBRRAt } = require('./brr');
 const CLOCK = 1024000, PPQ = 480, TICKS_PER_SECOND = 960;
+const Timing = require('./timing');
 const tick = () => new Promise(r => setImmediate(r));
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const signedVolume = n => Math.abs(n > 127 ? n - 256 : n);
@@ -115,17 +116,22 @@ function vlq(n) {
 }
 function meta(type, text) { const b = Buffer.from(text, 'utf8'); return Buffer.concat([Buffer.from([255, type]), vlq(b.length), b]); }
 function chunk(id, data) { const h = Buffer.alloc(8); h.write(id); h.writeUInt32BE(data.length, 4); return Buffer.concat([h, data]); }
-function track(events, seconds) {
+function track(events, seconds, toTick = t => Math.round(t * TICKS_PER_SECOND)) {
   events.sort((a, b) => a.t - b.t || a.order - b.order);
   let prev = 0; const parts = [];
-  for (const e of events) { const at = Math.max(prev, Math.round(e.t * TICKS_PER_SECOND)); parts.push(vlq(at - prev), Buffer.from(e.bytes)); prev = at; }
-  parts.push(vlq(Math.max(0, Math.round(seconds * TICKS_PER_SECOND) - prev)), Buffer.from([255,47,0]));
+  for (const e of events) { const at = Math.max(prev, toTick(e.t)); parts.push(vlq(at - prev), Buffer.from(e.bytes)); prev = at; }
+  parts.push(vlq(Math.max(0, toTick(seconds) - prev)), Buffer.from([255,47,0]));
   return chunk('MTrk', Buffer.concat(parts));
 }
-function encode(notes, seconds, title = 'SNES voice transcription') {
+function encode(notes, seconds, title = 'SNES voice transcription', timing = Timing.resolve([], null, false)) {
+  const {toTick,tempo} = Timing.clock(timing,PPQ);
+  const tempoEvents = timing.tempo.filter(p=>p.time>timing.originSeconds).map(p=>({t:p.time,bpm:p.bpm}));
+  tempoEvents.unshift({t:0,bpm:tempo[0].bpm});
+  const tempoBytes = bpm => {const us=Math.round(60000000/bpm);return [255,81,3,us>>16&255,us>>8&255,us&255]};
   const head = Buffer.alloc(6); head.writeUInt16BE(1); head.writeUInt16BE(9, 2); head.writeUInt16BE(PPQ, 4);
-  const tracks = [track([{ t: 0, order: 0, bytes: meta(3,title) }, { t: 0, order: 1, bytes: [255,81,3,7,161,32] },
-    { t: 0, order: 2, bytes: meta(1,'Experimental DSP transcription. Assign instruments; sample tuning is estimated. Unpitched samples use a C4 root with relative pitch. DSP effects and envelopes are not reproduced.') }], seconds)];
+  const tracks = [track([{ t: 0, order: 0, bytes: meta(3,title) }, ...tempoEvents.map(p=>({t:p.t,order:1,bytes:tempoBytes(p.bpm)})),
+    { t: 0, order: 2, bytes: [255,88,4,timing.meter[0],Math.log2(timing.meter[1]),24,8] },
+    { t: 0, order: 2, bytes: meta(1,'Experimental DSP transcription. Assign instruments; sample tuning is estimated. Unpitched samples use a C4 root with relative pitch. DSP effects and envelopes are not reproduced.') }], seconds,toTick)];
   for (let ch = 0; ch < 8; ch++) {
     const events = [{ t: 0, order: -10, bytes: meta(3,`Voice ${ch + 1} - assign instrument`) }];
     const add = (t, order, bytes) => events.push({ t, order, bytes });
@@ -136,7 +142,7 @@ function encode(notes, seconds, title = 'SNES voice transcription') {
       for (const b of n.bends) { if (b.time >= n.end) continue; const v=clamp(Math.round(8192+b.semitones/24*8192),0,16383); add(b.time,3,[0xe0|ch,v&127,v>>7]); }
       add(n.start,4,[0x90|ch,n.note,n.velocity]); add(Math.max(n.end,n.start+1/TICKS_PER_SECOND),0,[0x80|ch,n.note,0]);
     }
-    add(seconds,10,[0xb0|ch,123,0]); tracks.push(track(events,seconds));
+    add(seconds,10,[0xb0|ch,123,0]); tracks.push(track(events,seconds,toTick));
   }
   return Buffer.concat([chunk('MThd',head),...tracks]);
 }
@@ -153,8 +159,10 @@ async function transcribe(audio, seconds, options = {}) {
   if (!data.notes.length) return null;
   return data;
 }
-async function fromAudioState(audio, seconds, title) {
+async function fromAudioState(audio, seconds, title, options = {}) {
   const data = await transcribe(audio, seconds);
-  return data && { bytes: encode(data.notes,seconds,title), notes:data.notes.length, approximate:data.approximate };
+  if (!data) return null;
+  const timing = Timing.resolve(data.notes,options.timing,options.inferTiming!==false);
+  return { bytes: encode(data.notes,seconds,title,timing), notes:data.notes.length, approximate:data.approximate,timing };
 }
 module.exports = { encode, trace, transcribe, fromAudioState, fundamental, vlq };

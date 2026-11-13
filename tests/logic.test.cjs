@@ -57,3 +57,19 @@ test('packaged Logic writer produces linked sampler tracks, MIDI events and orig
  const wav=fs.readFileSync(path.join(out,'Media/Samples',waves[0]));assert.deepEqual(wav.subarray(44),Buffer.from(pcm.buffer));
  assert.equal(wav.readUInt32LE(24),32000);
 });
+test('native Logic tempo map retimes notes, note lengths and bends without changing performance seconds',{skip:!fs.existsSync(helper)},t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'snes-grid-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+ const data=prepare({samples:[{id:'tone',srcn:1,pcm:Int16Array.from([100,-100,100,-100]),loop:true,loopStart:0}],notes:[{voice:0,instrument:'tone',start:.25,end:2.25,note:60,velocity:90,pan:64,bends:[{time:.25,semitones:0},{time:1.75,semitones:1}]}]});
+ data.timing={originSeconds:.25,tempo:[{time:0,bpm:150},{time:1.25,bpm:90}],meter:[3,4]};
+ const out=path.join(dir,'Tempo.logicx');execFileSync(helper,[out,path.resolve('app/logic-data/sampler.bin')],{input:JSON.stringify(data)});
+ const b=fs.readFileSync(path.join(out,'Alternatives/000/ProjectData')),records=[];
+ for(let p=24;p<b.length;){const size=36+b.readUInt32LE(p+28);records.push(b.subarray(p,p+size));p+=size;}
+ const tempo=records.find(r=>r.toString('ascii',0,4)==='qSvE'&&r[36]===0x60);
+ assert.equal(tempo.readUInt32LE(40)-38400,0);assert.equal(tempo.readUInt32LE(52),1500000);
+ assert.equal(tempo.readUInt32LE(72)-38400,2400);assert.equal(tempo.readUInt32LE(84),900000);
+ const events=records.find(r=>r.toString('ascii',0,4)==='qSvE'&&r.readUInt32LE(8)>=0x1200000&&r[36]===0xb0);
+ let note,bend;
+ for(let p=36;events[p]!==0xf1;){if(events[p]===0x90){note=events.subarray(p,p+32);p+=32;}else{if(events[p]===0xe0&&events.readUInt32LE(p+4)>38400)bend=events.subarray(p,p+16);p+=16;}}
+ assert.equal(note.readUInt32LE(4)-38400,0);assert.equal(note.readUInt32LE(28),3840);
+ assert.equal(bend.readUInt32LE(4)-38400,3120);
+});

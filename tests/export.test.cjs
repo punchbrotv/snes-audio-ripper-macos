@@ -57,3 +57,15 @@ test('SPC MIDI trace observes synthetic key-on and key-off commands',async()=>{
  assert.equal(await Midi.fromAudioState({},1,'Raw sample'),null);
 });
 module.exports={readMidi};
+test('MIDI writes tempo and meter while preserving notes and bends across a tempo change',()=>{
+ const timing={originSeconds:.25,tempo:[{time:0,bpm:150},{time:1.25,bpm:90}],meter:[3,4]};
+ const notes=[{voice:0,start:.25,end:2.25,note:60,srcn:0,velocity:90,pan:64,bends:[{time:.25,semitones:0},{time:1.75,semitones:1}]}];
+ const r=readMidi(Midi.encode(notes,3,'Tempo test',timing));
+ const voice=r.tracks[1];
+ assert.equal(voice.find(e=>e.status===0x90).time,0);
+ assert.equal(voice.find(e=>e.status===0x80).time,1920);
+ assert.ok(voice.some(e=>e.status===0xe0&&e.time===1560));
+ const raw=Midi.encode(notes,3,'Tempo test',timing);
+ assert.ok(raw.includes(Buffer.from([255,81,3,6,26,128]))); // 400000 us = 150 BPM
+ assert.ok(raw.includes(Buffer.from([255,88,4,3,2,24,8])));
+});

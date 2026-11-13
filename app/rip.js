@@ -7,6 +7,7 @@ const { readInfo } = require('./cover');
 const { fetchArt } = require('./art');
 const { recordAudio } = require('./record');
 const Export = require('./export');
+const Names = require('./track-names');
 const { makeLog } = require('./log');
 
 const MAX_FILES = 500; // cap so junk matches can't flood the folder
@@ -128,8 +129,10 @@ async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 's
     let rec = null;
     const warnings = [];
     const log = makeLog(dir);
+    const romSha256 = Names.romHash(rom);
+    const titleProfile = Names.load(input.romPath, cacheDir, romSha256, text => { log(text); emit({ phase: 'note', text }); });
     log('ROM ' + name + ', ' + rom.length + ' bytes, resourcesPath ' + process.resourcesPath);
-    try { rec = await recordAudio(rom, input.romPath, dir, emit, log, { format: selected }); }
+    try { rec = await recordAudio(rom, input.romPath, dir, emit, log, { format: selected, romSha256, titleProfile }); }
     catch (e) {
       warnings.push('Full music extraction failed: ' + e.message);
       log('RECORDING FAILED: ' + (e.stack || e.message));

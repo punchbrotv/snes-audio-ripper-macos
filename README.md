@@ -54,6 +54,8 @@ Choose **EXPORT AS → MP3, WAV, MIDI, or Logic Pro** before opening a ROM. Your
 | **Logic Pro** | A `.logicx` project per sound, with editable notes and original SNES samples already mapped to Logic’s built-in Sampler |
 | **MIDI (experimental)** | Editable notes in eight voice tracks; estimated sample tuning and piano placeholders you can replace in your DAW |
 
+**Readable track names:** import a matching title profile with **File → Import Track Names…**, then extract normally. Exports become names such as `Music Track-15 - Mountain Path.logicx`; WAV, MP3, and MIDI use the same names. The original track number stays in place. Profiles are optional local metadata: a ROM usually contains playback commands rather than a soundtrack tracklist, so the ripper cannot invent reliable titles for every game. [Create or share a track-name profile →](docs/track-names.md)
+
 **For Logic:** choose **Logic Pro · original samples**, extract, then click a result to open its project. Press Space in Logic to play. Each voice/instrument combination has its own Sampler track, so changing one instrument does not change the others. The original 32 kHz samples travel inside the `.logicx` package; no sound-library download, plug-in purchase, or manual assignment is needed. You can edit the notes in Piano Roll or play the instruments yourself.
 
 The Logic export is an editable reconstruction: it preserves sample loops, relative pitch, timing, pan, and pitch bends. Sampler envelopes and SNES-only effects such as echo, noise, and pitch modulation can sound different from the console recording. Very wide pitch sweeps use adjoining notes to fit Sampler’s bend range. Use WAV or MP3 when you want the emulated console performance.

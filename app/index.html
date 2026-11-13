@@ -169,7 +169,7 @@ api.onProgress(p=>{
   if(p.phase==='track'){
     level=.7;$('l1').textContent='SAVED  '+p.count+' FILES';$('l2').textContent=p.file;
     tracks.push({file:p.file,secs:p.secs});
-    const d=document.createElement('div');d.innerHTML='<span>'+p.file.replace(/\.(mp3|wav|mid|logicx)$/i,'')+'</span><span>'+fmt(p.secs)+'</span>';
+    const d=document.createElement('div'),name=document.createElement('span'),duration=document.createElement('span');name.textContent=p.file.replace(/\.(mp3|wav|mid|logicx)$/i,'');duration.textContent=fmt(p.secs);d.append(name,duration);
     $('list').appendChild(d);$('list').scrollTop=1e9;return;
   }
   if(p.phase==='scan'){
@@ -180,7 +180,7 @@ api.onProgress(p=>{
     $('l1').textContent='ENCODING '+$('format').value.toUpperCase()+'  '+p.count+' / '+p.total;$('l2').textContent=p.file;
     setBar(p.pct);level=p.lvl;
     tracks.push({file:p.file,secs:p.secs});
-    const d=document.createElement('div');d.innerHTML='<span>'+p.count+'. '+p.file.replace(/\.(mp3|wav|mid|logicx)$/i,'')+'</span><span>'+fmt(p.secs)+'</span>';
+    const d=document.createElement('div'),name=document.createElement('span'),duration=document.createElement('span');name.textContent=p.count+'. '+p.file.replace(/\.(mp3|wav|mid|logicx)$/i,'');duration.textContent=fmt(p.secs);d.append(name,duration);
     $('list').appendChild(d);$('list').scrollTop=1e9;
   }
 });

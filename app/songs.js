@@ -18,7 +18,7 @@ const tick = () => new Promise(r => setImmediate(r));
 
 async function ripSnapshots(snaps, dir, emit, log, deps = {}, rom = null, options = {}) {
   const selected = Export.format(options.format);
-  const catalog = new Catalog(dir, emit, log);
+  const catalog = new Catalog(dir, emit, log, options);
   const renderMod = deps.render ? null : require('./render'), render = deps.render || renderMod.render, encode = deps.encode || require('./mp3').encode;
   const parsed = [];
   for (const s of snaps) { try { parsed.push({ frame: s.frame, ...parseSnd(s.block) }); } catch (e) { log(`snapshot at frame ${s.frame} skipped: ${e.message}`); } }

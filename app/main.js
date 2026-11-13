@@ -24,7 +24,7 @@ app.whenReady().then(() => {
   output = app.getPath('desktop');
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     {label:app.name,submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'hideOthers'},{role:'unhide'},{type:'separator'},{role:'quit'}]},
-    {label:'File',submenu:[{label:'Open ROM…',accelerator:'CmdOrCtrl+O',click:()=>win.webContents.send('browse')},{label:'Choose Output Folder…',click:pickOutput},{type:'separator'},{role:'close'}]},
+    {label:'File',submenu:[{label:'Open ROM…',accelerator:'CmdOrCtrl+O',click:()=>win.webContents.send('browse')},{label:'Choose Output Folder…',click:pickOutput},{label:'Import Track Names…',click:importTrackNames},{type:'separator'},{role:'close'}]},
     {role:'editMenu'},{role:'windowMenu'}
   ]));
   createWindow();
@@ -35,6 +35,15 @@ async function pickOutput() {
   if(job) return;
   const r = await dialog.showOpenDialog(win,{title:'Choose extraction destination',defaultPath:output,properties:['openDirectory','createDirectory']});
   if(!r.canceled) output=r.filePaths[0];
+}
+async function importTrackNames() {
+  if (job) return;
+  const r = await dialog.showOpenDialog(win, {title:'Import track-name profile',properties:['openFile'],filters:[{name:'Track names',extensions:['json']}]});
+  if (r.canceled) return;
+  try {
+    const profile = require('./track-names').install(r.filePaths[0], app.getPath('userData'));
+    await dialog.showMessageBox(win, {type:'info',message:`Imported ${profile.tracks.length} track names`,detail:'These names will be used for future exports of the matching ROM, in every format.'});
+  } catch (e) { await dialog.showMessageBox(win, {type:'error',message:'Could not import track names',detail:e.message}); }
 }
 ipcMain.handle('pick', async () => {
   const r=await dialog.showOpenDialog(win,{properties:['openFile','multiSelections'],filters:[{name:'SNES ROM or ZIP',extensions:['sfc','smc','swc','fig','bin','zip','001','002','003','a','b']}]});

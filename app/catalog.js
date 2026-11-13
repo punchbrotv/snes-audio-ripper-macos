@@ -1,7 +1,7 @@
 'use strict';
 // Discovery builds one format-independent list. Encoding cannot stop discovery or change track IDs.
 const fs = require('fs'), path = require('path');
-const Export = require('./export'), A = require('./analyse');
+const Export = require('./export'), A = require('./analyse'), Names = require('./track-names');
 const OK_RATES = new Set([8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000]);
 function resample(a, from, to) {
   const n = Math.floor(a.length * to / from), out = new Int16Array(n);
@@ -9,19 +9,20 @@ function resample(a, from, to) {
   return out;
 }
 class Catalog {
-  constructor(dir, emit = () => {}, log = () => {}) { this.dir = dir; this.emit = emit; this.log = log; this.tracks = []; this.counts = { Music: 0, SFX: 0 }; }
+  constructor(dir, emit = () => {}, log = () => {}, options = {}) { this.options = options; this.dir = dir; this.emit = emit; this.log = log; this.tracks = []; this.counts = { Music: 0, SFX: 0 }; }
   add(kind, label, audio, seconds, fade) {
     const id = kind === 'Music' ? `Music Track-${++this.counts.Music}` : `SFX-${++this.counts.SFX}`;
     // Keep small sound states, not entire minutes of PCM in memory. Audio is replayed for export.
     const source = audio.spc ? { spc: audio.spc, baselineSpc: audio.baselineSpc, gain: audio.gain || 1 } : audio;
-    this.tracks.push({ id, kind, label, seconds: Math.min(seconds, audio.left.length / audio.rate), fade, source });
+    const title = Names.titleFor(this.options.titleProfile, kind, label);
+    this.tracks.push({ id, kind, label, ...(title ? { title } : {}), seconds: Math.min(seconds, audio.left.length / audio.rate), fade, source });
     this.log(`discovered ${kind}/${id} [${label}]`);
   }
   async export(selected, deps = {}) {
     selected = Export.format(selected);
     const render = deps.render || require('./render').render, encode = deps.encode || require('./mp3').encode;
     const midi = deps.midi || require('./midi').fromAudioState;
-    const manifest = { version: 1, format: selected, discovered: { music: this.counts.Music, sfx: this.counts.SFX }, tracks: this.tracks.map(({ source, fade, ...t }) => ({ ...t, file: `${t.kind}/${t.id}.${Export.extension(selected)}`, status: 'pending' })) };
+    const manifest = { version: 1, format: selected, ...(this.options.romSha256 ? { romSha256: this.options.romSha256 } : {}), discovered: { music: this.counts.Music, sfx: this.counts.SFX }, tracks: this.tracks.map(({ source, fade, ...t }) => ({ ...t, file: `${t.kind}/${Names.stem(t.id, t.title)}.${Export.extension(selected)}`, status: 'pending' })) };
     const persist = () => fs.writeFileSync(path.join(this.dir, 'manifest.json'), JSON.stringify(manifest, null, 2));
     fs.mkdirSync(this.dir, { recursive: true }); persist();
     let music = 0, sfx = 0, skipped = 0;
@@ -32,9 +33,9 @@ class Catalog {
         let bytes;
         if (selected === 'logic') {
           const write = deps.logic || require('./logic').write;
-          entry.project = await write(path.join(this.dir, entry.file), t.source, t.seconds, t.label);
+          entry.project = await write(path.join(this.dir, entry.file), t.source, t.seconds, t.title || t.label);
         } else if (selected === 'midi') {
-          const result = await midi(t.source, t.seconds, t.label);
+          const result = await midi(t.source, t.seconds, t.title || t.label);
           if (!result) throw new Error('No recoverable MIDI note events for this sound.');
           bytes = result.bytes;
         } else {

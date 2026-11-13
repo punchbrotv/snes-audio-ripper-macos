@@ -1,6 +1,6 @@
 {
   "name": "snes-audio-ripper-macos",
-  "version": "1.2.0-mac.1",
+  "version": "1.2.1-mac.1",
   "private": true,
   "description": "Unofficial Apple Silicon macOS port of SNES Audio Ripper",
   "scripts": {

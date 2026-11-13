@@ -1,7 +1,7 @@
 'use strict';
-// Musical time is separate from performance time. Never quantize the performance.
+// Musical time may follow elapsed seconds or verified source-sequencer beat anchors.
 function validate(value) {
-  const { originSeconds = 0, tempo, meter = [4, 4] } = value || {};
+  const { originSeconds = 0, tempo, meter = [4, 4], beatAnchors } = value || {};
   if (!Number.isFinite(originSeconds) || originSeconds < 0 || originSeconds > 600 || !Array.isArray(tempo) || !tempo.length || tempo.length > 4096 ||
       !Array.isArray(meter) || meter.length !== 2 || !Number.isInteger(meter[0]) || meter[0] < 1 || meter[0] > 32 || ![1,2,4,8,16].includes(meter[1])) throw Error('Invalid musical timing profile.');
   let previous = -1;
@@ -11,19 +11,41 @@ function validate(value) {
     return { time: p.time, bpm: Math.round(p.bpm * 10000) / 10000 };
   });
   if (points[0].time !== 0) throw Error('The tempo map must start at time 0.');
-  return { originSeconds, tempo: points, meter: [...meter] };
+  let anchors;
+  if (beatAnchors !== undefined) {
+    if (!Array.isArray(beatAnchors) || beatAnchors.length < 2 || beatAnchors.length > 100000) throw Error('Invalid source beat anchors.');
+    let lastTime = -1, lastBeat = -1;
+    anchors = beatAnchors.map(p => {
+      if (!Array.isArray(p) || p.length !== 2 || !Number.isFinite(p[0]) || p[0] < 0 || p[0] > 600 || p[0] <= lastTime ||
+          !Number.isFinite(p[1]) || p[1] < 0 || p[1] > 10000 || p[1] <= lastBeat) throw Error('Source beat anchors must increase in time and beat position.');
+      lastTime = p[0]; lastBeat = p[1]; return [...p];
+    });
+    if (Math.abs(anchors[0][0] - originSeconds) > 1e-9 || anchors[0][1] !== 0) throw Error('The first source beat anchor must match the origin at beat zero.');
+  }
+  return { originSeconds, tempo: points, meter: [...meter], ...(anchors ? { beatAnchors: anchors } : {}) };
+
 }
 function clock(timing, ppq = 960) {
-  const points = validate(timing).tempo;
+  const validated = validate(timing), points = validated.tempo, anchors = validated.beatAnchors;
   let beat = 0;
   const segments = points.map((p, i) => {
     if (i) beat += (p.time - points[i-1].time) * points[i-1].bpm / 60;
     return { ...p, beat };
   });
-  function beats(seconds) {
+  function performanceBeats(seconds) {
     let lo = 0, hi = segments.length - 1;
     while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (segments[mid].time <= seconds) lo = mid; else hi = mid - 1; }
     const p = segments[lo]; return p.beat + (seconds - p.time) * p.bpm / 60;
+  }
+  function beats(seconds) {
+    if (!anchors) return performanceBeats(seconds);
+    if (seconds <= anchors[0][0]) return performanceBeats(seconds) - performanceBeats(anchors[0][0]);
+    const last = anchors.at(-1);
+    if (seconds >= last[0]) return last[1] + performanceBeats(seconds) - performanceBeats(last[0]);
+    let lo = 0, hi = anchors.length - 1;
+    while (lo + 1 < hi) { const mid = (lo + hi) >> 1; if (anchors[mid][0] <= seconds) lo = mid; else hi = mid; }
+    const a = anchors[lo], b = anchors[hi];
+    return a[1] + (seconds-a[0]) * (b[1]-a[1]) / (b[0]-a[0]);
   }
   const origin = timing.originSeconds || 0, offset = beats(origin);
   const toTick = seconds => Math.max(0, Math.round((beats(seconds) - offset) * ppq));

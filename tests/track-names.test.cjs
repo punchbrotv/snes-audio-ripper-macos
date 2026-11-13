@@ -15,7 +15,7 @@ test('matches normalized ROM bytes, ignores mismatched sidecars, and supports im
   assert.equal(Names.load(path.join(dir, 'other.sfc'), cache, 'a'.repeat(64)), null);
   fs.writeFileSync(file, '{malformed');
   assert.deepEqual(Names.load(path.join(dir, 'game.zip'), cache, hash), profile);
-  fs.writeFileSync(file, ' '.repeat(1024 * 1024 + 1));
+  fs.writeFileSync(file, ' '.repeat(8 * 1024 * 1024 + 1));
   assert.throws(() => Names.read(file), /exceeds/);
 });
 test('validates profile identities and safely bounds filenames without losing stable IDs', () => {

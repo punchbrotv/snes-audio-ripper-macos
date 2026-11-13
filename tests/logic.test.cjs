@@ -73,3 +73,15 @@ test('native Logic tempo map retimes notes, note lengths and bends without chang
  assert.equal(note.readUInt32LE(4)-38400,0);assert.equal(note.readUInt32LE(28),3840);
  assert.equal(bend.readUInt32LE(4)-38400,3120);
 });
+test('native Logic places source-beat attacks exactly and retains fractional-beat echoes',{skip:!fs.existsSync(helper)},t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'snes-score-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+ const anchors=[[.05,0],[.56,1],[.58,1+1/24],[.82,1.5],[.987,1+5/6],[1.067,2]];
+ const notes=anchors.map(([start])=>({voice:0,instrument:'tone',start,end:start+.03,note:60,velocity:90,pan:64,bends:[{time:start,semitones:0}]}));
+ const data=prepare({samples:[{id:'tone',srcn:1,pcm:Int16Array.from([100,-100]),loop:true,loopStart:0}],notes});
+ data.timing={originSeconds:.05,tempo:[{time:0,bpm:120}],beatAnchors:anchors};
+ const out=path.join(dir,'Score.logicx');execFileSync(helper,[out,path.resolve('app/logic-data/sampler.bin')],{input:JSON.stringify(data)});
+ const b=fs.readFileSync(path.join(out,'Alternatives/000/ProjectData'));let events;
+ for(let p=24;p<b.length;){const size=36+b.readUInt32LE(p+28),r=b.subarray(p,p+size);if(r.toString('ascii',0,4)==='qSvE'&&r.readUInt32LE(8)>=0x1200000&&r[36]===0xb0)events=r;p+=size;}
+ const starts=[];for(let p=36;events[p]!==0xf1;){if(events[p]===0x90){starts.push(events.readUInt32LE(p+4)-38400);p+=32}else p+=16;}
+ assert.deepEqual(starts,[0,960,1000,1440,1760,1920]);
+});

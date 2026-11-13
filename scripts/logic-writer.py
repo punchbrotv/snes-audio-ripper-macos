@@ -80,6 +80,21 @@ def musical_clock(timing):
     def position(seconds):
         i = max(0, bisect.bisect_right(times, seconds)-1)
         return beats[i]+(seconds-times[i])*bpms[i]/60
+    anchors = timing.get('beatAnchors')
+    if anchors is not None:
+        if not 2 <= len(anchors) <= 100000: raise ValueError('Invalid source beat anchors.')
+        atimes, abeats = [], []
+        for a in anchors:
+            if len(a) != 2 or not all(math.isfinite(v) for v in a) or not 0 <= a[0] <= 600 or not 0 <= a[1] <= 10000 or (atimes and (a[0] <= atimes[-1] or a[1] <= abeats[-1])):
+                raise ValueError('Source beat anchors must increase.')
+            atimes.append(a[0]); abeats.append(a[1])
+        if abs(atimes[0]-origin) > 1e-9 or abeats[0] != 0: raise ValueError('Invalid source beat origin.')
+        performance_position = position
+        def position(seconds):
+            if seconds <= atimes[0]: return performance_position(seconds)-performance_position(atimes[0])
+            if seconds >= atimes[-1]: return abeats[-1]+performance_position(seconds)-performance_position(atimes[-1])
+            i = bisect.bisect_right(atimes, seconds)-1
+            return abeats[i]+(seconds-atimes[i])*(abeats[i+1]-abeats[i])/(atimes[i+1]-atimes[i])
     offset = position(origin)
     def to_tick(seconds):
         return max(0, round((position(seconds)-offset)*960))

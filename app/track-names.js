@@ -1,7 +1,7 @@
 'use strict';
 // Optional user metadata. Audio discovery never depends on titles or game identity.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
-const MAX_BYTES = 1024 * 1024;
+const MAX_BYTES = 8 * 1024 * 1024;
 function romHash(rom) {
   if (rom.length % 1024 === 512) rom = rom.subarray(512);
   return crypto.createHash('sha256').update(rom).digest('hex');
@@ -23,7 +23,7 @@ function validate(profile) {
   return { version: 1, romSha256: profile.romSha256, tracks };
 }
 function read(file) {
-  if (fs.statSync(file).size > MAX_BYTES) throw Error('Track-name profile exceeds 1 MB.');
+  if (fs.statSync(file).size > MAX_BYTES) throw Error('Track-name profile exceeds 8 MB.');
   return validate(JSON.parse(fs.readFileSync(file, 'utf8')));
 }
 function install(file, cacheDir) {

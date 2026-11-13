@@ -23,3 +23,15 @@ test('periodic notes receive an estimated grid, sparse events keep an explicitly
  const varying=notes.map(n=>({...n,start:n.start<20?n.start:20+(n.start-20)*1.17}));
  assert.equal(Timing.resolve(varying).source,'unresolved');
 });
+test('source beat anchors remove dispatch jitter without erasing written triplets or echo offsets',()=>{
+ const timing={originSeconds:.05,tempo:[{time:0,bpm:120}],beatAnchors:[[.05,0],[.56,1],[.58,1+1/24],[.82,1.5],[.987,1+5/6],[1.067,2]]};
+ const c=Timing.clock(timing);
+ assert.deepEqual(timing.beatAnchors.map(p=>c.toTick(p[0])),[0,960,1000,1440,1760,1920]);
+ assert.equal(c.toTick((.82+.987)/2),1600);
+ assert.equal(c.toTick(1.567),2880);
+ assert.deepEqual(c.tempo,[{tick:0,bpm:120}]);
+ assert.equal(Timing.clock(Timing.validate(timing),480).toTick(.82),720);
+ assert.throws(()=>Timing.validate({...timing,beatAnchors:[[.05,0],[.04,1]]}),/increase/);
+ assert.throws(()=>Timing.validate({...timing,beatAnchors:[[.05,0],[.56,0]]}),/increase/);
+ assert.throws(()=>Timing.validate({...timing,beatAnchors:[[.04,0],[.56,1]]}),/origin/);
+});

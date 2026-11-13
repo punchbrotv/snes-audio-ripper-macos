@@ -2,7 +2,7 @@
 
 # Developer checks
 
-Run `npm test` after setup. Synthetic fixtures exercise raw and ZIP input, Unicode filenames, ambiguous archives, split-ROM ordering, explicit SPC command ports, and Stop/cancel dispatch. Export checks cover exact WAV samples, MIDI structure and note timing, voice separation, pitch bends, sample tuning, and DSP key-on/key-off tracing. No game ROM is committed.
+Run `npm test` after setup. Synthetic fixtures exercise raw and ZIP input, Unicode filenames, ambiguous archives, split-ROM ordering, explicit SPC command ports, and Stop/cancel dispatch. Export checks cover exact WAV samples, MIDI structure and note timing, voice separation, pitch bends, sample tuning, and DSP key-on/key-off tracing. Discovery regressions cover small drivers, short upload prefixes, relocated bank tables, repeatable controller inputs, and matching track IDs across formats when an export fails. No game ROM is committed.
 
 To exercise the packaged native runtime with a ROM you provide:
 

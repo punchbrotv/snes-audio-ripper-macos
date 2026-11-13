@@ -245,7 +245,7 @@ async function ripFromRom({ rom, runs, analysis, render, api, log }) {
           // an endless effect built from a few short snippets picked at random (chatter, ambience):
           // keep 15 s of it as the game plays it, plus every snippet on its own at its usual pitch
           { let pk = 1; for (let i = 0; i < r.left.length; i++) pk = Math.max(pk, Math.abs(r.left[i]), Math.abs(r.right[i]));
-            const g = Math.min(8, 20000 / pk); if (g > 1.2) for (let i = 0; i < r.left.length; i++) { r.left[i] *= g; r.right[i] *= g; } }   // the game plays it quietly
+            const g = Math.min(8, 20000 / pk); if (g > 1.2) r.gain = g; if (g > 1.2) for (let i = 0; i < r.left.length; i++) { r.left[i] *= g; r.right[i] *= g; } }   // the game plays it quietly
           if (await api.addSfx(label + ' (random sequence, 15 s)', r, 15)) { sfx++; found++; }
           const dir = b.c.dsp[0x5d] << 8, bySrc = new Map();
           for (const e of ev) { if (!bySrc.has(e.srcn)) bySrc.set(e.srcn, []); bySrc.get(e.srcn).push(e.pitch); }

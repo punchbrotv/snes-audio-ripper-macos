@@ -45,7 +45,7 @@ The app is ad-hoc signed, not Apple-notarized. If macOS blocks it, use **System 
 
 ![Drop, rip, play — controller, mouse, and console photo collage](docs/assets/use.jpg)
 
-Choose **EXPORT AS → MP3, WAV, or MIDI** before opening a ROM. Your choice is remembered.
+Choose **EXPORT AS → MP3, WAV, or MIDI** before opening a ROM. Your choice is remembered. All three formats use the same discovered track catalog and track numbers. Each output folder includes `manifest.json`, listing every discovered track and any export failures.
 
 | Format | Best for |
 | :--- | :--- |
@@ -80,9 +80,10 @@ flowchart TD
     A["Your ROM or ZIP"] --> B["Read the game's data"]
     B --> C["Run the game in Snes9x and capture sound memory"]
     C --> D["Discover sound programs, samples, and playback commands"]
-    D --> E["Run the sound program on emulated sound hardware"]
+    D --> K["Build one track catalog for every format"]
+    K --> E["Run the sound program on emulated sound hardware"]
     E --> F["Record, trim, fade: WAV or MP3"]
-    D --> M["Trace note commands: editable MIDI"]
+    K --> M["Trace note commands: editable MIDI"]
     F --> G["Export folders + audio player"]
     M --> H["Export folders + your MIDI app"]
     classDef input fill:#d9ccef,stroke:#6640b2,color:#24212f
@@ -91,7 +92,7 @@ flowchart TD
     class F,G output
 ```
 
-**Finding the band.** A headless emulator runs the game with simulated button presses, captures sound memory, and searches for commands that produce distinct audio. The extraction engine works from the data and sound program inside the ROM you supply.
+**Finding the band.** A headless emulator runs the game with simulated button presses, captures sound memory, and searches for commands that produce distinct audio. It also follows ROM upload blocks to find additional music banks, then checks which sound-chip port indexes each bank’s song table. The extraction engine works from the data and sound program inside the ROM you supply.
 
 **From memory to music.** The SPC sound renderer turns the game's sound program and samples into raw audio (PCM). The app saves those samples in WAV files or compresses them into MP3. MIDI instead records note events traced from the sound program. Extraction runs in a background worker so the window can stay responsive.
 

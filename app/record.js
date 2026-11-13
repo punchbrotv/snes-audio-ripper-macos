@@ -58,22 +58,25 @@ function init(koffi, corePath) {
 
 // Button bot: taps START/A early to get past title screens and menus, then wanders (mostly rightwards) and jumps/attacks.
 // libretro joypad ids: B0 Y1 SELECT2 START3 UP4 DOWN5 LEFT6 RIGHT7 A8 X9 L10 R11
-function makeBot() {
+function makeBot(seed = 0x6d2b79f5) {
+  // Repeatable input makes discovery independent of export format and run order.
+  let state = seed >>> 0;
+  const random = () => { state = (Math.imul(state, 1664525) + 1013904223) >>> 0; return state / 4294967296; };
   let f = 0, held = 0, until = 0, next = 30;
-  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const rnd = (a, b) => a + Math.floor(random() * (b - a + 1));
   return () => {
     f++;
     if (f >= until) held = 0;
     if (f >= next) {
-      const r = Math.random(); let m = 0, dur = 5;
+      const r = random(); let m = 0, dur = 5;
       if (r < .16) m = 1 << 3;
       else if (r < .38) m = 1 << 8;
       else if (r < .52) m = 1 << 0;
       else if (r < .58) m = (1 << 9) | (1 << 1);
       else {
-        const d = Math.random() < .5 ? 7 : [4, 5, 6][rnd(0, 2)];
+        const d = random() < .5 ? 7 : [4, 5, 6][rnd(0, 2)];
         m = 1 << d; dur = rnd(20, 90);
-        if (Math.random() < .5) m |= 1 << (Math.random() < .6 ? 8 : 0);
+        if (random() < .5) m |= 1 << (random() < .6 ? 8 : 0);
       }
       held = m; until = f + dur; next = f + dur + rnd(6, 35);
     }

@@ -145,7 +145,7 @@ async function start(paths){
   clearInterval(timer);busy=false;$('format').disabled=false;level=0;
   if(r.ok){outDir=r.dir;setBar(1);$('seek').classList.remove('on');$('l1').textContent='EXTRACTION COMPLETE!';$('l1').classList.add('done','blink');$('l2').textContent=r.music+' MUSIC TRACKS   '+r.sfx+' SFX';buildList();
     if(r.warnings&&r.warnings.length)$('l1').textContent='COMPLETED WITH NOTES';
-    if(r.skipped)$('l2').textContent+='  '+r.skipped+' WITHOUT NOTE DATA SKIPPED';
+    if(r.skipped){$('l1').textContent='PARTIAL EXPORT';$('l2').textContent+='  '+r.skipped+' FAILED — SEE MANIFEST.JSON';}
     setMarq('EXTRACTION COMPLETE! '+r.music+' MUSIC TRACKS AND '+r.sfx+' SFX ('+r.count+' FILES) SAVED TO OUTPUT FOLDER: '+r.name.toUpperCase()+(r.format==='midi'?' - CLICK A FILE TO OPEN IN YOUR MIDI APP':' - PRESS PLAY TO LISTEN'));}
   else{$('l1').textContent=r.cancelled?'STOPPED':'ERROR';$('l2').textContent=r.cancelled?'EXTRACTION CANCELLED':r.error;$('seek').classList.remove('on');setMarq(r.error.toUpperCase());$('hint').classList.remove('hide')}
 }

@@ -137,6 +137,11 @@ async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 's
         : e.message === 'koffi-missing' ? 'MUSIC RECORDING SKIPPED - KOFFI MODULE MISSING - RUN NPM INSTALL' : 'MUSIC RECORDING FAILED - ' + String(e.message).toUpperCase() });
     }
     const base = 0, span = 1;
+    if (rec?.skipped) warnings.push(`${rec.skipped} discovered tracks could not be exported; see manifest.json.`);
+    if (rec?.discovered && !rec.total && rec.discovered.music + rec.discovered.sfx > 0) {
+      await artP;
+      return { ok: false, dir, error: 'Tracks were discovered but export failed. See manifest.json for each failure.' };
+    }
     // when the sound program was ripped properly, the guessy raw-sample scan is not needed
     if (selected === 'midi' && !(rec && rec.total)) { await artP; return { ok: false, dir, error: 'No editable note events recovered. Try WAV or MP3 for audio export.' }; }
     let samples = (rec && rec.total) ? [] : await scanBRR(rom, (p, f) => emit({ phase: 'scan', pct: base + p * 0.5 * span, found: f }));
@@ -162,7 +167,7 @@ async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 's
       if (k % 4 === 0) await tick();
     }
     await artP;
-    return { ok: true, dir, warnings, format: selected, skipped: rec ? rec.skipped || 0 : 0, count: samples.length + (rec ? rec.total : 0), sfx: sfx + (rec ? rec.sfx : 0), inst, music: rec ? rec.music : 0, sounds: 0, name };
+    return { ok: true, dir, warnings, format: selected, discovered: rec?.discovered, skipped: rec ? rec.skipped || 0 : 0, count: samples.length + (rec ? rec.total : 0), sfx: sfx + (rec ? rec.sfx : 0), inst, music: rec ? rec.music : 0, sounds: 0, name };
   } catch (e) {
     return { ok: false, error: e.message };
   }

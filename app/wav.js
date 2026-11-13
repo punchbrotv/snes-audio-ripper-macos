@@ -13,3 +13,21 @@ function parseWav(buf) {
   return { rate: fmt.rate, left: L, right: R };
 }
 module.exports = { parseWav };
+
+// Standard RIFF/WAVE, signed 16-bit little-endian PCM; no lossy re-encoding.
+function encodeWav(channels, rate) {
+  if (!Array.isArray(channels) || channels.length < 1 || channels.length > 2 ||
+      !Number.isInteger(rate) || rate <= 0 || channels.some(c => !(c instanceof Int16Array) || c.length !== channels[0].length)) {
+    throw new Error('WAV requires matching mono or stereo Int16 PCM channels and a sample rate.');
+  }
+  const size = channels[0].length * channels.length * 2;
+  if (size > 0xffffffff - 36) throw new Error('Audio exceeds the WAV size limit.');
+  const out = Buffer.alloc(44 + size), ch = channels.length;
+  out.write('RIFF'); out.writeUInt32LE(36 + size, 4); out.write('WAVEfmt ', 8);
+  out.writeUInt32LE(16, 16); out.writeUInt16LE(1, 20); out.writeUInt16LE(ch, 22);
+  out.writeUInt32LE(rate, 24); out.writeUInt32LE(rate * ch * 2, 28);
+  out.writeUInt16LE(ch * 2, 32); out.writeUInt16LE(16, 34); out.write('data', 36); out.writeUInt32LE(size, 40);
+  for (let i = 0; i < channels[0].length; i++) for (let c = 0; c < ch; c++) out.writeInt16LE(channels[c][i], 44 + (i * ch + c) * 2);
+  return out;
+}
+module.exports.encodeWav = encodeWav;

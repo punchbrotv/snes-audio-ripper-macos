@@ -2,17 +2,17 @@
 
 # Developer checks
 
-Run `npm test` after setup. Synthetic fixtures exercise raw and ZIP input, Unicode filenames, ambiguous archives, split-ROM ordering, explicit SPC command ports, and Stop/cancel dispatch. No game ROM is committed.
+Run `npm test` after setup. Synthetic fixtures exercise raw and ZIP input, Unicode filenames, ambiguous archives, split-ROM ordering, explicit SPC command ports, and Stop/cancel dispatch. Export checks cover exact WAV samples, MIDI structure and note timing, voice separation, pitch bends, sample tuning, and DSP key-on/key-off tracing. No game ROM is committed.
 
 To exercise the packaged native runtime with a ROM you provide:
 
 ```sh
 ELECTRON_RUN_AS_NODE=1 'dist/SNES Audio Ripper.app/Contents/MacOS/Electron' \
-  scripts/test-packaged.cjs '/path/to/game.zip'
+  scripts/test-packaged.cjs '/path/to/game.zip' wav
 node scripts/verify-output.cjs '/path/to/exported/game'
 ```
 
-The second command requires FFmpeg and a folder of exported MP3s. It checks decoding, non-silence, decoded duration, and sample peaks. Generated audio and test logs are ignored by Git.
+The packaged test accepts `mp3` (default), `wav`, or `midi`. The second command requires FFmpeg and a folder of exported WAV/MP3 files. It checks decoding, non-silence, decoded duration, and sample peaks. Generated audio and test logs are ignored by Git.
 
 ![More purple buttons](../docs/assets/photo-snes-controller.jpg)
 

@@ -67,6 +67,7 @@ class SPC700 {
   dspWrite(r, v) {
     if (r === 0x7c) { this.dsp[r] = 0; return; }
     this.dsp[r] = v;
+    if (this.onDspWrite) this.onDspWrite(r, v);
     if (r < 0x80 && (r & 0x0f) < 2) { const m = v > 127 ? 256 - v : v; if (m > this.volPeak) this.volPeak = m; }   // loudest voice volume written
     if (r === 0x4c && v) {
       for (let k = 0; k < 8; k++) if (v >> k & 1) {

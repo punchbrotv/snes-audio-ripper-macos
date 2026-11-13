@@ -4,7 +4,7 @@ const koffi=require(path.join(resources,'app/node_modules/koffi'));
 const core=koffi.load(path.join(resources,'cores/snes9x_libretro.dylib'));
 if(core.func('unsigned int retro_api_version(void)')()!==1)throw Error('Unexpected libretro API');
 console.log('Packaged native Koffi + Snes9x: OK. Runtime:',process.versions);
-const worker=new Worker(path.join(resources,'app/rip-worker.js'),{workerData:{paths:[path.resolve(process.argv[2])],output:path.join(root,'output'),cache:path.join(root,'.cache')}});
+const worker=new Worker(path.join(resources,'app/rip-worker.js'),{workerData:{paths:[path.resolve(process.argv[2])],output:path.join(root,'output'),cache:path.join(root,'.cache'),format:process.argv[3]||'mp3'}});
 let result;
 worker.on('message',m=>{if(m.progress?.phase==='track')console.log(m.progress.file);if(m.result){result=m.result;console.log(JSON.stringify(result,null,2));}});
 worker.on('error',e=>{console.error(e);process.exitCode=1});

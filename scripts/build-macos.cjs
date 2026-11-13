@@ -22,8 +22,9 @@ fs.copyFileSync(path.join(root,'LICENSE'),path.join(resources,'PORT-LICENSE.txt'
 for(const name of ['LICENSE','LICENSES.chromium.html'])fs.copyFileSync(path.join(root,'node_modules/electron/dist',name),path.join(resources,name));
 if(fs.existsSync(path.join(root,'CREDITS.md')))fs.copyFileSync(path.join(root,'CREDITS.md'),path.join(resources,'CREDITS.md'));
 if(fs.existsSync(path.join(root,'THIRD_PARTY_NOTICES.md')))fs.copyFileSync(path.join(root,'THIRD_PARTY_NOTICES.md'),path.join(resources,'THIRD_PARTY_NOTICES.md'));
+const version=require('../app/package.json').version.split('-')[0];
 const plist=path.join(contents,'Info.plist');
-const edits={CFBundleDisplayName:'SNES Audio Ripper',CFBundleName:'SNES Audio Ripper',CFBundleIdentifier:'local.snes-audio-ripper.macos',CFBundleShortVersionString:'1.0.0',CFBundleVersion:'1',NSHumanReadableCopyright:'Original Windows application: Samsqwamch. macOS port: PunchBro, built with Codex by OpenAI.'};
+const edits={CFBundleDisplayName:'SNES Audio Ripper',CFBundleName:'SNES Audio Ripper',CFBundleIdentifier:'local.snes-audio-ripper.macos',CFBundleShortVersionString:version,CFBundleVersion:version,NSHumanReadableCopyright:'Original Windows application: Samsqwamch. macOS port: PunchBro, built with Codex by OpenAI.'};
 run('/usr/bin/python3',['-c', `import plistlib,json,sys
 p=sys.argv[1]
 with open(p,'rb') as f: d=plistlib.load(f)

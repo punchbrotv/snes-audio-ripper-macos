@@ -112,7 +112,7 @@ async function capture(koffi, corePath, rom, romPath, seconds, onPct, log) {
   return snaps;
 }
 
-async function recordAudio(rom, romPath, dir, emit, log = () => {}) {
+async function recordAudio(rom, romPath, dir, emit, log = () => {}, options = {}) {
   const corePath = findCore();
   log('core path: ' + corePath);
   if (!corePath) throw new Error('core-missing');
@@ -120,7 +120,7 @@ async function recordAudio(rom, romPath, dir, emit, log = () => {}) {
   log('koffi loaded');
   emit({ phase: 'record', text: 'RUNNING THE GAME TO LOAD ITS SOUND PROGRAM', pct: 0, local: 0, label: 'RUNNING GAME', sub: 'LOADING THE SOUND PROGRAM INTO THE SOUND CHIP' });
   const snaps = await capture(koffi, corePath, rom, romPath, SECONDS, p => emit({ phase: 'record', pct: p * 0.15, local: p, label: 'RUNNING GAME', sub: 'LOADING THE SOUND PROGRAM INTO THE SOUND CHIP' }), log);
-  return ripSnapshots(snaps, dir, emit, log, {}, rom);
+  return ripSnapshots(snaps, dir, emit, log, {}, rom, options);
 }
 
 module.exports = { recordAudio, makeBot };

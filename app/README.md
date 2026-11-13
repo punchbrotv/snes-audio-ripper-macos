@@ -11,7 +11,8 @@ The full application source is checked in here. [Build instructions](../README.m
 | `rip-worker.js`, `rip.js` | Background extraction, progress, cancellation, output folders |
 | `record.js`, `songs.js`, `driver.js` | Emulate the game, capture sound memory, discover playback commands |
 | `spc.js`, `spc700.js`, `render.js` | Sound-state handling, sound-CPU logic, and audio rendering |
-| `mp3.js`, `wav.js` | Audio encoding and file output |
+| `export.js`, `mp3.js`, `wav.js` | Format validation, MP3 encoding, and lossless WAV output |
+| `midi.js` | Experimental DSP-command tracing, sample tuning, and Standard MIDI File export |
 | `brr.js` | Raw instrument-sample fallback |
 | `art.js`, `cover.js` | Optional cover-art lookup and processing |
 

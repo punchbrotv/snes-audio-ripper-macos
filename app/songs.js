@@ -13,6 +13,7 @@ const blocks = require('./blocks');
 const { ripFromRom } = require('./rom-rip');
 const OK_RATES = new Set([8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000]);
 const PROBE = 6, MID = 30, FULL = 70, SILENT = 250, QUIET = 150, SAME_SONG = 0.75, MAX_STATES = 8, STEADY = 0.25;
+const Export = require('./export');
 const tick = () => new Promise(r => setImmediate(r));
 function resample(a, from, to) {
   const n = Math.floor(a.length * to / from), o = new Int16Array(n);
@@ -20,7 +21,9 @@ function resample(a, from, to) {
   return o;
 }
 
-async function ripSnapshots(snaps, dir, emit, log, deps = {}, rom = null) {
+async function ripSnapshots(snaps, dir, emit, log, deps = {}, rom = null, options = {}) {
+  const selected = Export.format(options.format), ext = Export.extension(selected);
+  let skipped = 0;
   const renderMod = deps.render ? null : require('./render'), render = deps.render || renderMod.render, encode = deps.encode || require('./mp3').encode;
   const parsed = [];
   for (const s of snaps) { try { parsed.push({ frame: s.frame, ...parseSnd(s.block) }); } catch (e) { log(`snapshot at frame ${s.frame} skipped: ${e.message}`); } }
@@ -45,9 +48,15 @@ async function ripSnapshots(snaps, dir, emit, log, deps = {}, rom = null) {
     let L = r.left.slice(0, n), R = r.right.slice(0, n), rate = r.rate;
     const fade = Math.min(n, Math.round(fadeSec * rate));
     for (let i = 0; i < fade; i++) { const g = i / fade; L[n - 1 - i] *= g; R[n - 1 - i] *= g; }
-    if (!OK_RATES.has(rate)) { L = resample(L, rate, 32000); R = resample(R, rate, 32000); rate = 32000; }
-    const file = kind === 'Music' ? `Music Track-${++music}.mp3` : `SFX-${++sfx}.mp3`;
-    fs.writeFileSync(path.join(dir, kind, file), await encode([L, R], rate, 160));
+    if (selected === 'mp3' && !OK_RATES.has(rate)) { L = resample(L, rate, 32000); R = resample(R, rate, 32000); rate = 32000; }
+    let data;
+    if (selected === 'midi') {
+      const result = await require('./midi').fromAudioState(r, n / r.rate, label);
+      if (!result) { skipped++; log('MIDI skipped: no recoverable note events for ' + label); return; }
+      data = result.bytes;
+    } else data = selected === 'wav' ? require('./wav').encodeWav([L, R], rate) : await encode([L, R], rate, 160);
+    const file = kind === 'Music' ? `Music Track-${++music}.${ext}` : `SFX-${++sfx}.${ext}`;
+    fs.writeFileSync(path.join(dir, kind, file), data);
     log(`saved ${kind}/${file}  [${label}]`);
     emit({ phase: 'track', pct: null, file: kind + '/' + file, secs: n / r.rate, count: music + sfx, total: '?' });
   };
@@ -150,6 +159,6 @@ async function ripSnapshots(snaps, dir, emit, log, deps = {}, rom = null) {
   }
   if (renderMod) renderMod.shutdown();
   log(`done: ${music} songs, ${sfx} sound effects`);
-  return { music, sfx, total: music + sfx };
+  return { music, sfx, total: music + sfx, skipped };
 }
 module.exports = { ripSnapshots };

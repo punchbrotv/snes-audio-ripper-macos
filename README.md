@@ -5,14 +5,14 @@
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-13%2B-24212f?style=for-the-badge&logo=apple" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Apple_Silicon-native-6640b2?style=for-the-badge" alt="Native Apple Silicon">
-  <img src="https://img.shields.io/badge/export-MP3-d9ccef?style=for-the-badge" alt="MP3 export">
+  <img src="https://img.shields.io/badge/export-WAV%20%7C%20MP3%20%7C%20MIDI-d9ccef?style=for-the-badge" alt="WAV, MP3, and MIDI export">
   <a href="https://github.com/punchbrotv/snes-audio-ripper-macos/releases/latest"><img src="https://img.shields.io/github/v/release/punchbrotv/snes-audio-ripper-macos?style=for-the-badge&color=6640b2" alt="Latest release"></a>
 </p>
 <p align="center">
   <a href="#download">Download</a> · <a href="#use">Use</a> · <a href="#how-it-works">How it works</a> · <a href="#build">Build</a> · <a href="#credits">Credits</a> · <a href="docs/GALLERY.md">Even more SNES</a>
 </p>
 
-An unofficial Apple Silicon port of **[Samsqwamch’s SNES Audio Ripper](https://github.com/Samsqwamch/SNES_Audio_Ripper/releases/tag/v1.0.0)**. Drop in a SNES ROM or single-ROM ZIP, extract music and sound effects, and listen in the built-in player.
+An unofficial Apple Silicon port of **[Samsqwamch’s SNES Audio Ripper](https://github.com/Samsqwamch/SNES_Audio_Ripper/releases/tag/v1.0.0)**. Drop in a SNES ROM or single-ROM ZIP, export music and sound effects as **WAV, MP3, or MIDI**. Preview WAV/MP3 in the built-in player; open MIDI in your DAW.
 
 **Original Windows app and extraction engine: Samsqwamch. macOS port: [PunchBro](https://github.com/punchbrotv), built with [Codex by OpenAI](https://openai.com/codex/).**
 
@@ -33,7 +33,7 @@ The app is ad-hoc signed, not Apple-notarized. If macOS blocks it, use **System 
 | Small app rituals | What you get |
 | :--- | :--- |
 | 📦 Drop a ROM or ZIP | `.sfc`, `.smc`, and single-ROM ZIP loading; split files supported |
-| 🎵 Extract the sound | Music and sound effects exported as MP3 |
+| 🎵 Extract the sound | WAV or MP3 audio; experimental editable MIDI notes |
 | ▶ Press play | Original retro interface with a built-in audio player |
 | ⌘ Make yourself at home | Native file dialogs, ⌘O, and an output-folder picker |
 | ⏹ Change your mind | Background extraction with cancellation; completed files stay saved |
@@ -45,9 +45,19 @@ The app is ad-hoc signed, not Apple-notarized. If macOS blocks it, use **System 
 
 ![Drop, rip, play — controller, mouse, and console photo collage](docs/assets/use.jpg)
 
+Choose **EXPORT AS → MP3, WAV, or MIDI** before opening a ROM. Your choice is remembered.
+
+| Format | Best for |
+| :--- | :--- |
+| **MP3** | Compact, ready-to-listen audio |
+| **WAV** | Lossless 16-bit PCM audio for editing and sampling |
+| **MIDI (experimental)** | Editable notes in eight voice tracks; estimated sample tuning and piano placeholders you can replace in your DAW |
+
+MIDI reconstructs performance data from sound-chip commands. It does not contain the original samples, envelopes, or DSP effects. Unpitched samples use a placeholder note; sounds without recoverable note events are skipped. Click an exported MIDI file to open it in your system’s MIDI app.
+
 1. **Drop** a ROM or ZIP onto the window, or choose **File → Open ROM…** (⌘O). Unzip archives containing multiple ROMs first.
 2. **Extract.** The app creates a game-named folder on your Desktop. Change the destination with **File → Choose Output Folder…** for the current session.
-3. **Listen.** Click a completed track to play it. **FOLDER** reveals the files in Finder. The square Stop button stops playback or cancels extraction.
+3. **Open the results.** Click a WAV/MP3 track to play it, or a MIDI track to open it in your MIDI app. **FOLDER** reveals the files in Finder. The square Stop button stops playback or cancels extraction.
 
 Bring your own ROM. Game ROMs and extracted game audio are not included in the repository or release.
 
@@ -63,7 +73,7 @@ A SNES game usually doesn't store its soundtrack as a folder of ready-made songs
 - **Musical instructions** say which notes to play, how long to hold them, and when to loop.
 - **A sound program** acts as the conductor, telling the SNES sound hardware how to combine everything.
 
-The ripper finds those ingredients and runs the sound program on **emulated sound hardware**: software that reproduces the behavior of the console's audio chips. It calculates the resulting sound wave, tidies up the ending, and compresses the recording into an MP3.
+The ripper finds those ingredients and runs the sound program on **emulated sound hardware**: software that reproduces the behavior of the console's audio chips. It calculates the resulting sound wave, tidies up the ending, and writes WAV audio or compresses it into MP3. For MIDI, it follows the sound program’s note and pitch commands instead of storing the waveform.
 
 ```mermaid
 flowchart TD
@@ -71,8 +81,10 @@ flowchart TD
     B --> C["Run the game in Snes9x and capture sound memory"]
     C --> D["Discover sound programs, samples, and playback commands"]
     D --> E["Run the sound program on emulated sound hardware"]
-    E --> F["Record audio, trim, fade, and encode MP3"]
-    F --> G["Audio folders + built-in player"]
+    E --> F["Record, trim, fade: WAV or MP3"]
+    D --> M["Trace note commands: editable MIDI"]
+    F --> G["Export folders + audio player"]
+    M --> H["Export folders + your MIDI app"]
     classDef input fill:#d9ccef,stroke:#6640b2,color:#24212f
     classDef output fill:#6640b2,stroke:#24212f,color:#fff
     class A,B,C input
@@ -81,9 +93,9 @@ flowchart TD
 
 **Finding the band.** A headless emulator runs the game with simulated button presses, captures sound memory, and searches for commands that produce distinct audio. The extraction engine works from the data and sound program inside the ROM you supply.
 
-**From memory to music.** The SPC sound renderer turns the game's sound program and samples into raw audio (PCM). The MP3 encoder makes those samples into ordinary playable files. Extraction runs in a background worker so the window can stay responsive.
+**From memory to music.** The SPC sound renderer turns the game's sound program and samples into raw audio (PCM). The app saves those samples in WAV files or compresses them into MP3. MIDI instead records note events traced from the sound program. Extraction runs in a background worker so the window can stay responsive.
 
-**Sometimes the map is missing.** Different games use different sound programs. If discovery finds no usable recordings, the app can scan for raw compressed instrument samples (BRR). These are individual sounds; that fallback does not guarantee complete songs or their original in-game pitch.
+**Sometimes the map is missing.** Different games use different sound programs. If discovery finds no usable recordings, WAV and MP3 exports can fall back to scanning for raw compressed instrument samples (BRR). These are individual sounds; that fallback does not guarantee complete songs or their original in-game pitch. MIDI needs recoverable note events and cannot use this raw-sample fallback.
 
 ![Twenty more real SNES hardware photographs](docs/assets/contact-04.jpg)
 
@@ -113,7 +125,8 @@ open 'dist/SNES Audio Ripper.app'
 <summary><b>Command line and repository map</b></summary>
 
 ```sh
-npm run rip -- '/path/to/game.zip' '/path/to/output'
+npm run rip -- '/path/to/game.zip' '/path/to/output' wav
+# Last argument: mp3 (default), wav, or midi
 ```
 
 | Location | What's inside |

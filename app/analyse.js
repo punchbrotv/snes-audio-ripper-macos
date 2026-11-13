@@ -11,9 +11,9 @@ const lastLoud = (en, t, win = 0.05) => { for (let i = en.length - 1; i >= 0; i-
 function diff(a, b) {
   const n = Math.min(a.left.length, b.left.length), L = new Int16Array(n), R = new Int16Array(n), c = v => (v > 32767 ? 32767 : v < -32768 ? -32768 : v);
   for (let i = 0; i < n; i++) { L[i] = c(a.left[i] - b.left[i]); R[i] = c(a.right[i] - b.right[i]); }
-  return { rate: a.rate, left: L, right: R };
+  return { rate: a.rate, left: L, right: R, spc: a.spc, baselineSpc: b.spc };
 }
-const slice = (r, sec) => { const n = Math.min(r.left.length, Math.round(sec * r.rate)); return { rate: r.rate, left: r.left.subarray(0, n), right: r.right.subarray(0, n) }; };
+const slice = (r, sec) => { const n = Math.min(r.left.length, Math.round(sec * r.rate)); return { ...r, left: r.left.subarray(0, n), right: r.right.subarray(0, n) }; };
 
 function fft(re, im) {
   const n = re.length;

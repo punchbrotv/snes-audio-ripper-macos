@@ -17,7 +17,7 @@ function start() {
   w.on('message', m => {
     const p = pending.get(m.id); if (!p) return;
     pending.delete(m.id); clearTimeout(p.t);
-    if (m.error) p.rej(new Error(m.error)); else p.res({ rate: m.rate, left: m.left, right: m.right });
+    if (m.error) p.rej(new Error(m.error)); else p.res({ rate: m.rate, left: m.left, right: m.right, spc: p.spc });
   });
   w.on('error', e => { if (worker === w) worker = null; failAll(e); });
   w.on('exit', () => { if (worker === w) { worker = null; failAll(new Error('render worker exited')); } });
@@ -31,7 +31,7 @@ function render(spc, timeoutMs = 30000) {
       const w = worker; worker = null; if (w) w.terminate();   // kill the stuck player; the next call starts a fresh one
       rej(new Error('render timed out after ' + timeoutMs / 1000 + ' s'));
     }, timeoutMs);
-    pending.set(id, { res, rej, t });
+    pending.set(id, { res, rej, t, spc: Buffer.from(spc) });
     worker.postMessage({ id, spc });
   });
 }

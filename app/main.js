@@ -40,11 +40,12 @@ ipcMain.handle('pick', async () => {
   const r=await dialog.showOpenDialog(win,{properties:['openFile','multiSelections'],filters:[{name:'SNES ROM or ZIP',extensions:['sfc','smc','swc','fig','bin','zip','001','002','003','a','b']}]});
   return r.canceled?[]:r.filePaths;
 });
-ipcMain.handle('rip', (e, paths) => {
+ipcMain.handle('rip', (e, paths, selected = 'mp3') => {
   if(job) return {ok:false,error:'An extraction is already running.'};
+  try { require('./export').format(selected); } catch (err) { return {ok:false,error:err.message}; }
   if(!Array.isArray(paths)||!paths.length||paths.some(p=>typeof p!=='string')) return {ok:false,error:'Choose a ROM.'};
   return new Promise(resolve => {
-    const worker = new Worker(path.join(__dirname,'rip-worker.js'),{workerData:{paths,output,cache:app.getPath('userData')}});
+    const worker = new Worker(path.join(__dirname,'rip-worker.js'),{workerData:{paths,output,cache:app.getPath('userData'),format:selected}});
     job=worker;
     let finished=false;
     const finish=r=>{if(finished)return;finished=true;if(job===worker)job=null;if(r.ok)lastOutput=r.dir;resolve(r)};
@@ -56,3 +57,8 @@ ipcMain.handle('rip', (e, paths) => {
 ipcMain.on('cancel',()=>{if(job){job.cancelled=true;job.terminate()}});
 ipcMain.on('win',(_e,a)=>a==='min'?win.minimize():win.close());
 ipcMain.on('open',()=>{if(lastOutput)shell.openPath(lastOutput)});
+
+ipcMain.handle('open-midi', async (_e, file) => {
+  if (!lastOutput || typeof file !== 'string' || !/^(Music|SFX)\/[^/\\]+\.mid$/.test(file)) return 'Choose an exported MIDI file.';
+  return shell.openPath(path.join(lastOutput, file));
+});

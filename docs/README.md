@@ -3,7 +3,7 @@
 # Documentation, with excessive Super Nintendo
 
 - [Start here: download and use](../README.md)
-- [How the sound becomes an MP3](../README.md#how-it-works)
+- [How the sound becomes an export](../README.md#how-it-works)
 - [The hardware gallery](GALLERY.md)
 - [Every photograph's source](assets/SOURCES.md)
 - [Application code tour](../app/README.md)

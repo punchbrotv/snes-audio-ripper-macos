@@ -1,4 +1,4 @@
-// Core engine: join split ROMs -> strip header -> find BRR samples -> decode -> MP3
+// Core engine: join split ROMs -> strip header -> find BRR samples -> decode -> selected export format
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -6,7 +6,7 @@ const os = require('os');
 const { readInfo } = require('./cover');
 const { fetchArt } = require('./art');
 const { recordAudio } = require('./record');
-const { encode } = require('./mp3');
+const Export = require('./export');
 const { makeLog } = require('./log');
 
 const MAX_FILES = 500; // cap so junk matches can't flood the folder
@@ -94,16 +94,17 @@ function shape(pcm, loop) {
 
 // Raw BRR samples carry no pitch info. SFX are usually stored at ~half the DSP rate, so they are encoded at 16 kHz
 // (an octave lower than 32 kHz) which is closer to how they sound in-game. Instrument loops stay at 32 kHz.
-async function toMp3(pcm, loop) {
+async function sampleAudio(pcm, loop) {
   const wav = shape(pcm, loop);
   let peak = 1; for (const v of wav) peak = Math.max(peak, Math.abs(v));
   const g = 29000 / peak, buf = new Int16Array(wav.length);
   for (let i = 0; i < wav.length; i++) buf[i] = wav[i] * g;
-  return encode([buf], loop ? RATE : 16000, loop ? 96 : 64);
+  return { channels: [buf], rate: loop ? RATE : 16000 };
 }
 
-async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 'snes-audio-ripper')) {
+async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 'snes-audio-ripper'), options = {}) {
   try {
+    const selected = Export.format(options.format), ext = Export.extension(selected);
     emit({ phase: 'join', text: 'LOADING ROM...' });
     const input = require('./input').loadInput(paths);
     let rom = input.rom;
@@ -128,7 +129,7 @@ async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 's
     const warnings = [];
     const log = makeLog(dir);
     log('ROM ' + name + ', ' + rom.length + ' bytes, resourcesPath ' + process.resourcesPath);
-    try { rec = await recordAudio(rom, input.romPath, dir, emit, log); }
+    try { rec = await recordAudio(rom, input.romPath, dir, emit, log, { format: selected }); }
     catch (e) {
       warnings.push('Full music extraction failed: ' + e.message);
       log('RECORDING FAILED: ' + (e.stack || e.message));
@@ -137,6 +138,7 @@ async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 's
     }
     const base = 0, span = 1;
     // when the sound program was ripped properly, the guessy raw-sample scan is not needed
+    if (selected === 'midi' && !(rec && rec.total)) { await artP; return { ok: false, dir, error: 'No editable note events recovered. Try WAV or MP3 for audio export.' }; }
     let samples = (rec && rec.total) ? [] : await scanBRR(rom, (p, f) => emit({ phase: 'scan', pct: base + p * 0.5 * span, found: f }));
     if (!samples.length && !(rec && rec.total)) return { ok: false, error: 'No audio found. This ROM may use compressed sample data.' };
     // keep the cleanest MAX_FILES candidates, then number them in ROM order
@@ -151,15 +153,16 @@ async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 's
     for (let k = 0; k < samples.length; k++) {
       const s = samples[k], sub = s.loop ? 'Instruments' : 'SFX';
       s.loop ? inst++ : sfx++;
-      const file = `SFX-${k + 1}.mp3`;
-      fs.writeFileSync(path.join(rawDir, sub, file), await toMp3(s.pcm, s.loop));
+      const file = `SFX-${k + 1}.${ext}`;
+      const audio = await sampleAudio(s.pcm, s.loop);
+      await Export.writeAudio(path.join(rawDir, sub, file), audio.channels, audio.rate, selected, s.loop ? 96 : 64);
       let m = 0; for (let q = 0; q < s.pcm.length; q += 8) m += Math.abs(s.pcm[q]);
       const lvl = Math.min(1, m / (s.pcm.length / 8) / 6000);
       emit({ phase: 'encode', pct: base + span * (0.5 + (0.5 * (k + 1)) / samples.length), file: sub + '/' + file, secs: s.loop ? 1.5 : s.pcm.length / 16000, count: k + 1, total: samples.length, lvl });
       if (k % 4 === 0) await tick();
     }
     await artP;
-    return { ok: true, dir, warnings, count: samples.length + (rec ? rec.total : 0), sfx: sfx + (rec ? rec.sfx : 0), inst, music: rec ? rec.music : 0, sounds: 0, name };
+    return { ok: true, dir, warnings, format: selected, skipped: rec ? rec.skipped || 0 : 0, count: samples.length + (rec ? rec.total : 0), sfx: sfx + (rec ? rec.sfx : 0), inst, music: rec ? rec.music : 0, sounds: 0, name };
   } catch (e) {
     return { ok: false, error: e.message };
   }

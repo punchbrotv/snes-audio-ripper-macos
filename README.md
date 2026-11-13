@@ -45,7 +45,7 @@ The app is ad-hoc signed, not Apple-notarized. If macOS blocks it, use **System 
 
 ![Drop, rip, play — controller, mouse, and console photo collage](docs/assets/use.jpg)
 
-Choose **EXPORT AS → MP3, WAV, or MIDI** before opening a ROM. Your choice is remembered. All four formats use the same discovered track catalog and track numbers. Each output folder includes `manifest.json`, listing every discovered track and any export failures.
+Choose **EXPORT AS → MP3, WAV, MIDI, or Logic Pro** before opening a ROM. Your choice is remembered. All four formats use the same discovered track catalog and track numbers. Each output folder includes `manifest.json`, listing every discovered track and any export failures.
 
 | Format | Best for |
 | :--- | :--- |
@@ -102,6 +102,20 @@ flowchart TD
 **Finding the band.** A headless emulator runs the game with simulated button presses, captures sound memory, and searches for commands that produce distinct audio. It also follows ROM upload blocks to find additional music banks, then checks which sound-chip port indexes each bank’s song table. The extraction engine works from the data and sound program inside the ROM you supply.
 
 **From memory to music.** The SPC sound renderer turns the game's sound program and samples into raw audio (PCM). The app saves those samples in WAV files or compresses them into MP3. MIDI instead records note events traced from the sound program. Extraction runs in a background worker so the window can stay responsive.
+
+### How the Logic export gets its instruments
+
+Think of a Logic project as **sheet music plus a box of instruments**. A MIDI file supplies the sheet music. This export also builds the instrument box and connects every part to the right sound.
+
+1. **Watch the sound chip play.** The app runs the captured sound program and follows its commands across the SNES’s eight audio voices. When a voice starts a sound, it records the timing, pitch, volume, pan, and which sample is being used. Later pitch changes become editable pitch bends.
+2. **Catch the actual instrument.** At each note start, it reads the compressed BRR sample from sound memory and decodes it into a 32 kHz WAV. It checks the sample’s contents, because a game can replace the sound stored at the same memory address. Loop points tell Logic which part of a sustained sound to repeat.
+3. **Keep the sample’s original speed.** In the exported Sampler instrument, MIDI note 60 plays the sample at its original rate. The console’s playback speed determines how far above or below that note to place the performance. This preserves the sample’s relative pitch without having to guess whether a short, unusual waveform is a flute, bass, or drum.
+4. **Build the wiring.** Each voice/instrument combination gets its own Logic track, MIDI region, and built-in Sampler instrument. The exporter writes the sample assignment and loop settings directly into the project. It uses a new, empty Sampler state as its starting point and **[Jon Kubis’s LogicProFormatWriter](https://github.com/jonkubis/LogicProFormatWriter)** for the native project structure.
+5. **Pack it to go.** The resulting `.logicx` package contains both the editable performance and its sample WAVs. Logic can open it with the instruments already connected. The writer runs inside the ripper; Logic does not need to be running during export.
+
+The fiddly part was making the saved project describe everything Logic expects: instrument slots, sample references, loop settings, and pitch-bend ranges. Sampler supports bends of up to an octave in either direction, so the exporter shifts a note’s starting pitch to fit its bend curve; unusually wide sweeps become adjoining notes. We checked the result by opening projects in Logic and rendering a known test tone with a pitch bend, then measuring the audio it produced.
+
+For a closer look, [`app/midi.js`](app/midi.js) captures the performance and samples, [`app/logic.js`](app/logic.js) groups the instruments and fits the bends, and [`scripts/logic-writer.py`](scripts/logic-writer.py) writes the finished project.
 
 **Sometimes the map is missing.** Different games use different sound programs. If discovery finds no usable recordings, WAV and MP3 exports can fall back to scanning for raw compressed instrument samples (BRR). These are individual sounds; that fallback does not guarantee complete songs or their original in-game pitch. MIDI and Logic exports need recoverable note events and cannot use this raw-sample fallback.
 

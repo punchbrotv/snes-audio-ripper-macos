@@ -1,6 +1,6 @@
 {
   "name": "snes-audio-ripper",
-  "version": "1.2.3-mac.1",
+  "version": "1.2.4-mac.1",
   "description": "Extract SNES audio as WAV or MP3, or export editable MIDI notes.",
   "main": "main.js",
   "dependencies": {

@@ -20,7 +20,8 @@ function validate(profile) {
     seen.add(key);
     return { kind: t.kind, label: t.label, title: t.title.trim(), ...(t.timing ? { timing: require('./timing').validate(t.timing) } : {}) };
   });
-  return { version: 1, romSha256: profile.romSha256, tracks };
+  return { version: 1, romSha256: profile.romSha256, tracks,
+    ...(profile.instruments !== undefined ? { instruments: require('./instrument-names').validate(profile.instruments) } : {}) };
 }
 function read(file) {
   if (fs.statSync(file).size > MAX_BYTES) throw Error('Track-name profile exceeds 8 MB.');

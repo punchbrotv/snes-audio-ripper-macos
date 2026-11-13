@@ -72,3 +72,25 @@ Each pair is `[originalSeconds, musicalBeat]`; beats are quarter-note units star
 The distinction matters: a console can schedule a note on beat 2 but deliver its sound-chip command several milliseconds later. Tempo alone leaves that note visibly late in Piano Roll. Source beat anchors place the note at its actual sequencer beat, while retaining written triplets, rests, and fractional-beat echo offsets. Releases and pitch bends are converted along the same map, interpolating between anchors. After the final anchor the tempo map supplies the remaining time conversion.
 
 **This is a score-aligned export.** It removes execution delays and can slightly tighten playback compared with the console's real-time performance. Omit `beatAnchors` to preserve elapsed-time performance instead; WAV and MP3 are unaffected. The complete timing choice is recorded in the Logic project's `SNES Export.json` and export manifest.
+
+### Instrument names
+
+Logic's instrument tracks can use descriptive names supplied in the same local profile. Add an optional top-level `instruments` array alongside `tracks`:
+
+```json
+"instruments": [
+  {
+    "sampleSha256": "COPY_FROM_SNES_EXPORT_JSON",
+    "name": "Warm Strings",
+    "source": "My sample-library notes"
+  }
+]
+```
+
+Export once, then copy a sample's `sampleSha256` from the project's `SNES Export.json` or `Instrument Guide.txt`. Import the updated profile through the existing track-name import and export again. Up to 4,096 distinct sample names are supported, each at most 64 characters; source descriptions are optional single-line strings of at most 2,048 characters. The existing ROM fingerprint check still applies.
+
+The fingerprint covers the decoded 16-bit mono PCM at 32 kHz and its loop settings. It does not depend on a sample slot, RAM address, voice, or envelope. The same sound can therefore keep its label across songs, while a replacement sound in the same slot does not inherit the wrong name. A source description records where the label came from; importing a name does not independently prove that identification. Profiles and game-specific dictionaries are not bundled with the application.
+
+Names appear on both Logic tracks and MIDI regions, followed by `V` (original voice) and `S` (sample slot). Distinct envelope or tuning variants get numbered suffixes when necessary; they are not merged. Names describe the sampled sound rather than claiming a musical role such as lead or bass line. Unknown samples keep an explicit **Looped Sample** or **One-shot Sample** label; a track made entirely of DSP noise is labeled **Noise** even if its sample slot has a name.
+
+The project also contains **Instrument Guide.txt** and structured `instruments` metadata in **SNES Export.json**. These retain the name's origin, source slots, sample fingerprint, loop, frame count, original ADSR/GAIN registers, note count, and Sampler detune. Sample duration is measured at unity playback before pitch, looping, or envelopes. The guide documents the captured envelope, not a promise of exact Sampler envelope emulation. This feature changes labels only: notes, timing, samples, and instrument routing are unchanged. Standalone MIDI still requires assigning instruments.

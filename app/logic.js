@@ -1,6 +1,7 @@
 'use strict';
 const fs=require('fs'),path=require('path'),{spawn}=require('child_process'),crypto=require('crypto');
 const Midi=require('./midi');
+const Instruments=require('./instrument-names');
 // Logic Sampler supports ±12 semitones. Recenter each note's curve; exceptionally
 // wide sweeps become contiguous notes instead of silently clipping the bend.
 function samplerNotes(note){
@@ -19,7 +20,7 @@ function samplerNotes(note){
   }
   finish(note.end);return segments;
 }
-function prepare(data){
+function prepare(data,options={}){
   const samples={},groups=new Map(),source=new Map(data.samples.map(s=>[s.id,s]));
   let noiseNotes=0, retriggers=0;
   for(const original of data.notes){
@@ -29,11 +30,13 @@ function prepare(data){
     const id='sample-'+crypto.createHash('sha256').update(n.instrument+':'+n.detune).digest('hex').slice(0,20);
     if(!samples[id])samples[id]={frames:sample.pcm.length,pcm:Buffer.from(sample.pcm.buffer,sample.pcm.byteOffset,sample.pcm.byteLength).toString('base64'),loop:sample.loop,loopStart:sample.loopStart,adsr1:sample.adsr1,adsr2:sample.adsr2,gain:sample.gain,detune:n.detune};
     const key=`${n.voice}:${id}`;
-    if(!groups.has(key))groups.set(key,{name:`Voice ${n.voice+1} - Sample ${sample.srcn}`,sample:id,notes:[]});
+    if(!groups.has(key))groups.set(key,{sample:id,notes:[]});
     groups.get(key).notes.push(n);if(n.noise)noiseNotes++;
   }
   }
-  return {samples,tracks:[...groups.values()],noiseNotes,retriggers};
+  const tracks=[...groups.values()];
+  Instruments.nameTracks(tracks,source,options.instruments);
+  return {samples,tracks,noiseNotes,retriggers};
 }
 function runWriter(spec,out){
   const helper=path.join(__dirname,'helpers/logic-writer/logic-writer');
@@ -53,7 +56,7 @@ function runWriter(spec,out){
 async function write(file,audio,seconds,title,options={}){
   const data=await Midi.transcribe(audio,seconds,{samples:true});
   if(!data)throw Error('No recoverable instrument note events for this sound.');
-  const spec=prepare(data),parent=path.dirname(file);
+  const spec=prepare(data,options),parent=path.dirname(file);
   spec.timing=require('./timing').resolve(data.notes,options.timing,options.inferTiming!==false);
   spec.destination=path.resolve(file);
   fs.mkdirSync(parent,{recursive:true});
@@ -61,7 +64,9 @@ async function write(file,audio,seconds,title,options={}){
   const stage=fs.mkdtempSync(path.join(parent,'.logic-export-')),project=path.join(stage,'Session.logicx');
   try{
     const result=await runWriter(spec,project);
-    fs.writeFileSync(path.join(project,'SNES Export.json'),JSON.stringify({version:1,title,seconds,timing:spec.timing,...result,noiseNotes:spec.noiseNotes,widePitchRetriggers:spec.retriggers,description:'Original BRR samples with editable notes, loops, pan and pitch bends. Sampler envelopes and console echo/noise/pitch modulation are approximate.'},null,2));
+    const instruments=spec.tracks.map(g=>({trackName:g.name,sampleFile:g.sample+'.wav',...g.instrument}));
+    fs.writeFileSync(path.join(project,'Instrument Guide.txt'),Instruments.guide(spec.tracks));
+    fs.writeFileSync(path.join(project,'SNES Export.json'),JSON.stringify({version:1,title,seconds,timing:spec.timing,...result,instruments,noiseNotes:spec.noiseNotes,widePitchRetriggers:spec.retriggers,description:'Original BRR samples with editable notes, loops, pan and pitch bends. Sampler envelopes and console echo/noise/pitch modulation are approximate.'},null,2));
     fs.renameSync(project,file);return {...result,timing:spec.timing};
   }finally{fs.rmSync(stage,{recursive:true,force:true})}
 }

@@ -42,6 +42,7 @@ test('packaged Logic writer produces linked sampler tracks, MIDI events and orig
  const out=path.join(dir,'Song.logicx'),result=JSON.parse(execFileSync(helper,[out,path.resolve('app/logic-data/sampler.bin')],{input:JSON.stringify(data),encoding:'utf8'}));
  assert.deepEqual(result,{tracks:3,samples:1,notes:3});
  const b=fs.readFileSync(path.join(out,'Alternatives/000/ProjectData'));
+ assert.ok(b.includes(Buffer.from(data.tracks[0].name)),'Native project contains the descriptive track name');
  assert.equal(b.readUInt32LE(16),b.length-24);
  const records=[];for(let p=24;p<b.length;){const size=36+b.readUInt32LE(p+28);assert.ok(size>=36&&p+size<=b.length);records.push(b.subarray(p,p+size));p+=size;}
  const inserts=records.filter(r=>r.toString('ascii',0,4)==='UCuA'&&r.toString('ascii',156,163)==='Sampler');assert.equal(inserts.length,3);

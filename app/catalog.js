@@ -28,7 +28,7 @@ class Catalog {
     let music = 0, sfx = 0, skipped = 0;
     for (let i = 0; i < this.tracks.length; i++) {
       const t = this.tracks[i], entry = manifest.tracks[i];
-      const timingOptions = { timing: Names.timingFor(this.options.titleProfile, t.kind, t.label), inferTiming: t.kind === 'Music' };
+      const timingOptions = { timing: Names.timingFor(this.options.titleProfile, t.kind, t.label), inferTiming: t.kind === 'Music', instruments: this.options.titleProfile?.instruments };
       this.emit({ phase: 'record', local: i / this.tracks.length, pct: .8 + .2 * i / this.tracks.length, text: `EXPORTING ${selected.toUpperCase()} FROM THE DISCOVERED TRACK CATALOG`, label: `EXPORTING ${selected.toUpperCase()}`, sub: `${i + 1}/${this.tracks.length} DISCOVERED TRACKS` });
       try {
         let bytes;

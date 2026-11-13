@@ -121,6 +121,53 @@ def performance(notes, to_tick=lambda t: round(t*1920)):
     return b''.join(e[2] for e in events)+P.ProjectData.NOTE_QSVE_TAIL
 
 
+def track_appearance(raw, style):
+    # ivnE: low 12 icon bits at 0xb8; palette byte at 0xbf. Preserve flags.
+    b = bytearray(raw)
+    icon, color = style['iconId'], style['colorIndex']
+    if not isinstance(icon, int) or not 1 <= icon <= 996 or not isinstance(color, int) or not 1 <= color <= 96:
+        raise ValueError('Invalid Logic track appearance.')
+    flags = struct.unpack_from('<H', b, 0xb8)[0] & 0xf000
+    struct.pack_into('<H', b, 0xb8, flags | icon)
+    b[0xbf] = color
+    return bytes(b)
+
+
+def region_appearance(raw, style):
+    # qeSM: palette byte follows the padded variable-length region name.
+    # Index zero is Logic's automatic color, not the first rainbow swatch.
+    b = bytearray(raw)
+    n = struct.unpack_from('<H', b, 0x34)[0]
+    b[0x36 + n + (n & 1) + 9] = style['colorIndex']
+    return bytes(b)
+
+
+def phrase_regions(notes, to_tick, meter):
+    """Split only after more than a bar of MIDI rest, accounting for overlaps."""
+    measure = meter[0] * 960 * 4 // meter[1]
+    phrases, current, start, end = [], [], 0, 0
+    for note in sorted(notes, key=lambda n: to_tick(n['start'])):
+        attack = to_tick(note['start'])
+        release = max(attack + 1, to_tick(note['end']))
+        if current and attack - end > measure:
+            phrases.append((start, end, current))
+            current = []
+        if not current: start, end = attack, release
+        current.append(note)
+        end = max(end, release)
+    if current: phrases.append((start, end, current))
+    return phrases
+
+
+def region_length(raw, length):
+    # The prototype's length lives at 0x78 before its name is resized.
+    b = bytearray(raw)
+    n = struct.unpack_from('<H', b, 0x34)[0]
+    # Fixed tail layout: length is 0x3c bytes after the padded name.
+    struct.pack_into('<I', b, 0x36 + n + (n & 1) + 0x3c, length)
+    return bytes(b)
+
+
 def export(data, out, template):
     groups = data['tracks']
     to_tick, tempo, meter = musical_clock(data.get('timing', {}))
@@ -142,11 +189,27 @@ def export(data, out, template):
         strips.append(P._ocua_for_channel(pd,ch))
         iv=next(r for r in pd.records if r.tag==b'ivnE' and P._u32(r.raw,8)==ch)
         iv.raw=P._set_ivne_name(iv.raw,g['name'])
-    specs=[(i,[(to_tick(n['start']),n['note'],n['velocity'],max(1,to_tick(n['end'])-to_tick(n['start']))) for n in g['notes']],0,g['name']) for i,g in enumerate(groups,1)]
-    region_ids=P.synthesize_midi_regions(pd,specs,prototype=P._baked_infra()['midi_region_proto'])
-    for rid,g in zip(region_ids,groups):
+        if g.get('style'): iv.raw=track_appearance(iv.raw,g['style'])
+    regions = [(i, g, start, end, notes) for i,g in enumerate(groups,1)
+               for start,end,notes in phrase_regions(g['notes'],to_tick,meter)]
+    specs = [(i, [(to_tick(n['start'])-start,n['note'],n['velocity'],max(1,to_tick(n['end'])-to_tick(n['start'])))
+                  for n in notes], start, g['name']) for i,g,start,end,notes in regions]
+    # Splitting can create many more regions than tracks. Reserve a contiguous
+    # ID range clear of the mixer pool as well as existing region containers.
+    region_base = P.MIDI_REGION_INDEX_BASE
+    for used in sorted({P._u32(r.raw,8) for r in pd.records}):
+        if region_base <= used < region_base + len(regions)*P.SYNTH_IDX_STRIDE:
+            region_base = ((used // P.SYNTH_IDX_STRIDE) + 1)*P.SYNTH_IDX_STRIDE
+    if region_base + len(regions)*P.SYNTH_IDX_STRIDE > 0xffff0000:
+        raise ValueError('Too many Logic regions.')
+    region_ids=P.synthesize_midi_regions(pd,specs,prototype=P._baked_infra()['midi_region_proto'],region_index_base=region_base)
+    for rid,(_,g,start,end,notes) in zip(region_ids,regions):
+        region=next(r for r in pd.records if r.tag==b'qeSM' and P._u32(r.raw,8)==rid)
+        region.raw=region_length(region.raw,end-start)
+        if g.get('style'): region.raw=region_appearance(region.raw,g['style'])
         r=next(r for r in pd.records if r.tag==b'qSvE' and P._u32(r.raw,8)==rid)
-        payload=performance(g['notes'], to_tick);h=bytearray(r.raw[:36]);struct.pack_into('<I',h,28,len(payload));r.raw=bytes(h)+payload
+        payload=performance(notes, lambda t: to_tick(t)-start)
+        h=bytearray(r.raw[:36]);struct.pack_into('<I',h,28,len(payload));r.raw=bytes(h)+payload
     for strip,g in zip(strips,groups):
         if strip is None: raise ValueError('Missing Logic channel strip.')
         ordinal=P._u32(strip.raw,12)
@@ -177,7 +240,7 @@ def export(data, out, template):
     md['BeatsPerMinute']=tempo[0][1]
     md['SongSignatureNumerator'],md['SongSignatureDenominator']=meter
     mp.write_bytes(plistlib.dumps(md,fmt=plistlib.FMT_BINARY))
-    return {'tracks':len(groups),'samples':len(data['samples']),'notes':sum(len(g['notes']) for g in groups)}
+    return {'tracks':len(groups),'regions':len(regions),'samples':len(data['samples']),'notes':sum(len(g['notes']) for g in groups)}
 
 
 if __name__=='__main__':

@@ -36,6 +36,7 @@ function prepare(data,options={}){
   }
   const tracks=[...groups.values()];
   Instruments.nameTracks(tracks,source,options.instruments);
+  require('./logic-style').styleTracks(tracks);
   return {samples,tracks,noiseNotes,retriggers};
 }
 function runWriter(spec,out){
@@ -64,7 +65,7 @@ async function write(file,audio,seconds,title,options={}){
   const stage=fs.mkdtempSync(path.join(parent,'.logic-export-')),project=path.join(stage,'Session.logicx');
   try{
     const result=await runWriter(spec,project);
-    const instruments=spec.tracks.map(g=>({trackName:g.name,sampleFile:g.sample+'.wav',...g.instrument}));
+    const instruments=spec.tracks.map(g=>({trackName:g.name,sampleFile:g.sample+'.wav',...g.instrument,style:g.style}));
     fs.writeFileSync(path.join(project,'Instrument Guide.txt'),Instruments.guide(spec.tracks));
     fs.writeFileSync(path.join(project,'SNES Export.json'),JSON.stringify({version:1,title,seconds,timing:spec.timing,...result,instruments,noiseNotes:spec.noiseNotes,widePitchRetriggers:spec.retriggers,description:'Original BRR samples with editable notes, loops, pan and pitch bends. Sampler envelopes and console echo/noise/pitch modulation are approximate.'},null,2));
     fs.renameSync(project,file);return {...result,timing:spec.timing};

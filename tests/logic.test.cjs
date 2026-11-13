@@ -40,7 +40,7 @@ test('packaged Logic writer produces linked sampler tracks, MIDI events and orig
  const pcm=Int16Array.from({length:320},(_,i)=>10000*Math.sin(i*2*Math.PI/80));
  const data=prepare({samples:[{id:'tone',srcn:3,pcm,loop:true,loopStart:80}],notes:[0,1,2].map(voice=>({voice,instrument:'tone',start:0,end:1,note:60,velocity:90,pan:64,bends:[{time:0,semitones:0},{time:.5,semitones:2}]}))});
  const out=path.join(dir,'Song.logicx'),result=JSON.parse(execFileSync(helper,[out,path.resolve('app/logic-data/sampler.bin')],{input:JSON.stringify(data),encoding:'utf8'}));
- assert.deepEqual(result,{tracks:3,samples:1,notes:3});
+ assert.deepEqual(result,{tracks:3,regions:3,samples:1,notes:3});
  const b=fs.readFileSync(path.join(out,'Alternatives/000/ProjectData'));
  assert.ok(b.includes(Buffer.from(data.tracks[0].name)),'Native project contains the descriptive track name');
  assert.equal(b.readUInt32LE(16),b.length-24);
@@ -50,6 +50,12 @@ test('packaged Logic writer produces linked sampler tracks, MIDI events and orig
   const ordinal=r.readUInt32LE(12),strip=records.find(s=>s.toString('ascii',0,4)==='OCuA'&&s.readUInt32LE(12)===ordinal);
   assert.ok(strip.readUInt16LE(62)>=4);assert.equal(strip.readUInt32LE(176),1);
   assert.ok(r.includes(Buffer.from('sample-')));
+ }
+ for(const g of data.tracks){
+  const iv=records.find(r=>r.toString('ascii',0,4)==='ivnE'&&r.subarray(196,196+r.readUInt16LE(194)).toString()===g.name);
+  assert.equal(iv.readUInt16LE(0xb8)&0xfff,g.style.iconId);assert.equal(iv[0xbf],g.style.colorIndex);
+  const region=records.find(r=>r.toString('ascii',0,4)==='qeSM'&&r.subarray(54,54+r.readUInt16LE(52)).toString()===g.name);
+  const n=region.readUInt16LE(52);assert.equal(region[54+n+(n&1)+9],g.style.colorIndex);
  }
  const events=records.filter(r=>r.toString('ascii',0,4)==='qSvE'&&r.readUInt32LE(8)>=0x1200000&&r[36]===0xb0);
  assert.equal(events.length,3);
@@ -85,4 +91,49 @@ test('native Logic places source-beat attacks exactly and retains fractional-bea
  for(let p=24;p<b.length;){const size=36+b.readUInt32LE(p+28),r=b.subarray(p,p+size);if(r.toString('ascii',0,4)==='qSvE'&&r.readUInt32LE(8)>=0x1200000&&r[36]===0xb0)events=r;p+=size;}
  const starts=[];for(let p=36;events[p]!==0xf1;){if(events[p]===0x90){starts.push(events.readUInt32LE(p+4)-38400);p+=32}else p+=16;}
  assert.deepEqual(starts,[0,960,1000,1440,1760,1920]);
+});
+test('native Logic splits rests longer than one measure and preserves absolute notes and controllers',{skip:!fs.existsSync(helper)},t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'snes-phrases-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+ for(const meter of [[4,4],[3,4],[6,8]]){
+  const bar=meter[0]*3840/meter[1],c=1200+bar,d=c+240+bar+1,e=d+120,f=e+bar+600,g=e+bar*3+bar+1;
+  const spans=[[240,960],[480,1200],[c,c+240],[d,d+240],[e,e+bar*3],[f,f+120],[g,g+480]];
+  const notes=spans.map(([start,end],i)=>({voice:0,instrument:'tone',start:start/1920,end:end/1920,note:60,velocity:80+i,pan:30+i,bends:[{time:start/1920,semitones:0},{time:(start+12)/1920,semitones:.5}]}));
+  const data=prepare({samples:[{id:'tone',srcn:1,pcm:Int16Array.from([100,-100]),loop:true,loopStart:0}],notes});
+  data.timing={originSeconds:0,tempo:[{time:0,bpm:120}],meter};
+  const out=path.join(dir,meter.join('-')+'.logicx');
+  const result=JSON.parse(execFileSync(helper,[out,path.resolve('app/logic-data/sampler.bin')],{input:JSON.stringify(data),encoding:'utf8'}));
+  assert.equal(result.regions,3);assert.equal(result.notes,7);
+  const b=fs.readFileSync(path.join(out,'Alternatives/000/ProjectData')),records=[];
+  for(let p=24;p<b.length;){const size=36+b.readUInt32LE(p+28);records.push(b.subarray(p,p+size));p+=size;}
+  const regions=records.filter(r=>r.toString('ascii',0,4)==='qeSM'&&r.readUInt32LE(8)>=0x1200000),actual=[],controllers=[];
+  assert.equal(regions.length,3);
+  regions.forEach((r,i)=>{
+   const n=r.readUInt16LE(52),tail=54+n+(n&1),start=r.readUInt32LE(tail+224),length=r.readUInt32LE(tail+60);
+   assert.equal(start,[240,d,g][i]);assert.equal(start+length,[c+240,e+bar*3,g+480][i]);assert.equal(r[tail+9],data.tracks[0].style.colorIndex);
+   const ev=records.find(q=>q.toString('ascii',0,4)==='qSvE'&&q.readUInt32LE(8)===r.readUInt32LE(8));
+   for(let p=36;ev[p]!==0xf1;){const time=start+ev.readUInt32LE(p+4)-38400;
+    if(ev[p]===0x90){actual.push([time,time+ev.readUInt32LE(p+28)]);p+=32;}
+    else{controllers.push([ev[p],time]);p+=16;}
+   }
+   const placements=records.find(q=>q.toString('ascii',0,4)==='qSvE'&&q.readUInt32LE(8)===0x40000&&q[36]===0x20);
+   let found=false;for(let p=36;p+56<=placements.length;p+=4){if(placements.readUInt32LE(p)===0x20&&placements.readUInt32LE(p+32)===(r.readUInt32LE(8)>>>16)){assert.equal(placements.readUInt32LE(p+4)-34560,start);found=true;break;}}
+   assert.ok(found,'Region has matching arrange placement');
+  });
+  assert.deepEqual(actual,spans);
+  assert.deepEqual(controllers.filter(([status])=>status===0xb0).map(([,time])=>time),spans.map(([start])=>start));
+  assert.deepEqual(controllers.filter(([status])=>status===0xe0).map(([,time])=>time),spans.flatMap(([start])=>[start,start+12]));
+ }
+});
+test('many phrase regions receive IDs clear of the expanded mixer pool',{skip:!fs.existsSync(helper)},t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'snes-many-phrases-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+ const notes=Array.from({length:20},(_,voice)=>Array.from({length:10},(_,i)=>({voice,instrument:'tone',start:i*3,end:i*3+.1,note:60,velocity:90,pan:64,bends:[{time:i*3,semitones:0}]}))).flat();
+ const data=prepare({samples:[{id:'tone',srcn:1,pcm:Int16Array.from([100,-100]),loop:true,loopStart:0}],notes});
+ const out=path.join(dir,'Many.logicx'),result=JSON.parse(execFileSync(helper,[out,path.resolve('app/logic-data/sampler.bin')],{input:JSON.stringify(data),encoding:'utf8'}));
+ assert.equal(result.regions,200);assert.equal(result.notes,200);
+ const b=fs.readFileSync(path.join(out,'Alternatives/000/ProjectData')),regions=[],other=new Set(),names=new Set(data.tracks.map(g=>g.name));
+ for(let p=24;p<b.length;){const size=36+b.readUInt32LE(p+28),r=b.subarray(p,p+size);if(r.toString('ascii',0,4)==='qeSM'){
+  const n=r.readUInt16LE(52),name=r.subarray(54,54+n).toString(),id=r.readUInt32LE(8);
+  if(names.has(name))regions.push(id);else other.add(id);
+ }p+=size;}
+ assert.equal(regions.length,200);assert.equal(new Set(regions).size,200);assert.ok(regions.every(id=>!other.has(id)));
 });

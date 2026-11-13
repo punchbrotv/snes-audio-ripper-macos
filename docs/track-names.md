@@ -94,3 +94,15 @@ The fingerprint covers the decoded 16-bit mono PCM at 32 kHz and its loop settin
 Names appear on both Logic tracks and MIDI regions, followed by `V` (original voice) and `S` (sample slot). Distinct envelope or tuning variants get numbered suffixes when necessary; they are not merged. Names describe the sampled sound rather than claiming a musical role such as lead or bass line. Unknown samples keep an explicit **Looped Sample** or **One-shot Sample** label; a track made entirely of DSP noise is labeled **Noise** even if its sample slot has a name.
 
 The project also contains **Instrument Guide.txt** and structured `instruments` metadata in **SNES Export.json**. These retain the name's origin, source slots, sample fingerprint, loop, frame count, original ADSR/GAIN registers, note count, and Sampler detune. Sample duration is measured at unity playback before pitch, looping, or envelopes. The guide documents the captured envelope, not a promise of exact Sampler envelope emulation. This feature changes labels only: notes, timing, samples, and instrument routing are unchanged. Standalone MIDI still requires assigning instruments.
+
+### Icons and rainbow colors
+
+Logic export matches common instrument words in the profile description to Logic’s native artwork. More specific phrases take priority: **Acoustic Bass** gets an upright-bass icon, **Bass Drum** gets a kick, and **Electric Piano** gets electric keys. Unrecognized descriptions get a Sampler icon; the icon does not identify an unknown sample. Apple’s artwork stays in Logic and is not bundled with the ripper.
+
+Tracks and their regions receive the same explicit color, progressing through the rainbow in track order. Up to 24 tracks use one brightness row; larger sessions add brightness variants at each hue. Logic has 96 palette colors, so sessions above 96 tracks reuse that ordered palette. Export metadata records each track’s native icon ID, icon description, and color index. These appearance fields leave notes, controllers, tempo, routing, and samples unchanged.
+
+### Regions that show the phrases
+
+A gap longer than one full measure between the last note ending and the next note starting creates a new region on the same track. The threshold follows the project meter: four quarter-note beats in 4/4, three in 3/4 or 6/8. Tempo changes do not change the musical threshold. A gap of exactly one measure stays inside the region, and a held or overlapping note prevents a false split.
+
+Each region starts at its first note and ends at its last note release. This removes empty space at the edges without moving or quantizing any notes. Pan and pitch bends retain their absolute positions; every phrase keeps its track’s instrument, name, and color. “Rest” here means no active MIDI notes; a Sampler release or effect tail may continue sounding.

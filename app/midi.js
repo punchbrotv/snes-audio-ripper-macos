@@ -36,13 +36,13 @@ function fundamental(pcm, rate = 32000) {
   return null;
 }
 
-async function trace(spc, seconds) {
+async function trace(spc, seconds, options = {}) {
   if (!Buffer.isBuffer(spc) || spc.length < 0x10180 || !spc.toString('ascii', 0, 27).startsWith('SNES-SPC700 Sound File Data')) throw new Error('MIDI requires a valid SPC sound state.');
   if (!Number.isFinite(seconds) || seconds <= 0 || seconds > 600) throw new Error('Invalid MIDI duration.');
   const ram = spc.subarray(0x100, 0x10100);
   const c = new SPC700(ram, { pc: spc.readUInt16LE(0x25), a: spc[0x27], x: spc[0x28], y: spc[0x29], psw: spc[0x2a], sp: spc[0x2b] }, spc.subarray(0x10100, 0x10180));
   c.portIn = [...ram.subarray(0xf4, 0xf8)];
-  const notes = [], active = Array(8).fill(null), tuning = new Map();
+  const notes = [], active = Array(8).fill(null), tuning = new Map(), samples = new Map();
   let approximate = 0;
   const now = () => Math.min(seconds, c.cycles / CLOCK);
   function end(v) { if (active[v]) { active[v].end = Math.min(active[v].end, now()); active[v] = null; } }
@@ -56,18 +56,29 @@ async function trace(spc, seconds) {
     const state = read(v); if (!state.pitch || (c.dsp[0x5c] >> v & 1)) return;
     const dir = c.dsp[0x5d] << 8, at = (dir + state.srcn * 4) & 0xffff;
     const addr = c.ram[at] | c.ram[(at + 1) & 0xffff] << 8;
-    const key = `${dir}:${state.srcn}:${addr}`;
+    let pos=addr, flags=0;
+    for(let i=0;i<8000&&pos+9<=65536;i++,pos+=9){if(c.ram[pos]&1){flags=c.ram[pos];pos+=9;break;}}
+    const loopAddr = c.ram[(at+2)&65535] | c.ram[(at+3)&65535]<<8;
+    const key = options.samples ? require('crypto').createHash('sha256').update(c.ram.subarray(addr, pos)).update(String(loopAddr-addr)).digest('hex') : `${dir}:${state.srcn}:${addr}`;
     if (!tuning.has(key)) {
       const pcm = decodeBRRAt(c.ram, addr);
-      let pos=addr, flags=2;
-      for(let i=0;i<8000&&pos+9<=65536;i++,pos+=9){if(c.ram[pos]&1){flags=c.ram[pos];break;}}
-      tuning.set(key,{ hz: fundamental(pcm), duration: pcm.length / 32000, loop: !!(flags & 2) });
+      const loopStart = (loopAddr-addr)/9*16;
+      tuning.set(key,{ hz: options.samples ? null : fundamental(pcm), duration: pcm.length / 32000,
+        loop: !!(flags & 2), pcm, loopStart: Number.isInteger(loopStart) && loopStart>=0 && loopStart<pcm.length ? loopStart : 0 });
     }
     const sample = tuning.get(key), hz = (c.dsp[0x3d] >> v & 1) ? null : sample.hz;
-    const base = hz ? 69 + 12 * Math.log2(hz / 440) : 60;
+    const base = options.samples ? 60 : hz ? 69 + 12 * Math.log2(hz / 440) : 60;
     if (!hz) approximate++;
     const value = base + 12 * Math.log2(state.pitch / 4096), note = clamp(Math.round(value), 0, 127);
     const n = { voice: v, start: now(), end: sample.loop ? seconds : Math.min(seconds, now() + sample.duration * 4096 / state.pitch), note, srcn: state.srcn, velocity: state.velocity, pan: state.pan, bends: [{ time: now(), semitones: value - note }], base };
+    if (options.samples) {
+      const b = v*16;
+      const instrument = `${key}:${c.dsp[b+5]}:${c.dsp[b+6]}:${c.dsp[b+7]}`;
+      if (!samples.has(instrument)) samples.set(instrument, { id: instrument, pcm: sample.pcm, loop: sample.loop, loopStart: sample.loopStart,
+        adsr1: c.dsp[b+5], adsr2: c.dsp[b+6], gain: c.dsp[b+7], srcn: state.srcn });
+      n.instrument = instrument;
+      n.noise = !!(c.dsp[0x3d] >> v & 1);
+    }
     notes.push(n); active[v] = n;
   }
   c.onDspWrite = (reg, value) => {
@@ -96,7 +107,7 @@ async function trace(spc, seconds) {
     await tick();
   }
   for (let v = 0; v < 8; v++) end(v);
-  return { notes: notes.filter(n => n.end > n.start), approximate };
+  return { notes: notes.filter(n => n.end > n.start), approximate, ...(options.samples ? { samples: [...samples.values()] } : {}) };
 }
 function vlq(n) {
   if (!Number.isSafeInteger(n) || n < 0 || n > 0x0fffffff) throw new Error('Invalid MIDI delta time.');
@@ -129,17 +140,21 @@ function encode(notes, seconds, title = 'SNES voice transcription') {
   }
   return Buffer.concat([chunk('MThd',head),...tracks]);
 }
-async function fromAudioState(audio, seconds, title) {
+async function transcribe(audio, seconds, options = {}) {
   if (!audio.spc) return null;
-  const data = await trace(audio.spc, seconds);
+  const data = await trace(audio.spc, seconds, options);
   if (audio.baselineSpc) {
-    const baseline = (await trace(audio.baselineSpc,seconds)).notes;
+    const baseline = (await trace(audio.baselineSpc,seconds,options)).notes;
     // Remove notes already present without the command; keep the newly triggered performance.
     const groups = new Map();
     for (const n of baseline) { const k=`${n.voice}:${n.srcn}:${n.note}`; if(!groups.has(k))groups.set(k,[]);groups.get(k).push(n.start); }
     data.notes=data.notes.filter(n=>!(groups.get(`${n.voice}:${n.srcn}:${n.note}`)||[]).some(t=>Math.abs(t-n.start)<0.004));
   }
   if (!data.notes.length) return null;
-  return { bytes: encode(data.notes,seconds,title), notes:data.notes.length, approximate:data.approximate };
+  return data;
 }
-module.exports = { encode, trace, fromAudioState, fundamental, vlq };
+async function fromAudioState(audio, seconds, title) {
+  const data = await transcribe(audio, seconds);
+  return data && { bytes: encode(data.notes,seconds,title), notes:data.notes.length, approximate:data.approximate };
+}
+module.exports = { encode, trace, transcribe, fromAudioState, fundamental, vlq };

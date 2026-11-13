@@ -5,6 +5,7 @@ if(process.platform!=='darwin'||process.arch!=='arm64')throw Error('This build t
 const electron=path.join(root,'node_modules/electron/dist/Electron.app');
 if(!fs.existsSync(electron))throw Error('Run npm ci, then ELECTRON_CACHE="$PWD/.electron-cache" node node_modules/electron/install.js');
 if(!fs.existsSync(path.join(root,'app/cores/snes9x_libretro.dylib')))throw Error('Native Snes9x core missing.');
+if(!fs.existsSync(path.join(root,'app/helpers/logic-writer/logic-writer')))throw Error('Logic exporter missing. Run npm run setup.');
 fs.mkdirSync(path.dirname(dest),{recursive:true});
 fs.rmSync(dest,{recursive:true,force:true});
 run('/usr/bin/ditto',[electron,dest]);

@@ -59,6 +59,6 @@ ipcMain.on('win',(_e,a)=>a==='min'?win.minimize():win.close());
 ipcMain.on('open',()=>{if(lastOutput)shell.openPath(lastOutput)});
 
 ipcMain.handle('open-midi', async (_e, file) => {
-  if (!lastOutput || typeof file !== 'string' || !/^(Music|SFX)\/[^/\\]+\.mid$/.test(file)) return 'Choose an exported MIDI file.';
+  if (!lastOutput || typeof file !== 'string' || !/^(Music|SFX)\/[^/\\]+\.(mid|logicx)$/.test(file)) return 'Choose an exported MIDI file or Logic project.';
   return shell.openPath(path.join(lastOutput, file));
 });

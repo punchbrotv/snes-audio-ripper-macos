@@ -15,10 +15,11 @@ The full application source is checked in here. [Build instructions](../README.m
 | `spc.js`, `spc700.js`, `render.js` | Sound-state handling, sound-CPU logic, and audio rendering |
 | `export.js`, `mp3.js`, `wav.js` | Format validation, MP3 encoding, and lossless WAV output |
 | `midi.js` | Experimental DSP-command tracing, sample tuning, and Standard MIDI File export |
+| `logic.js`, `logic-data/` | Native Logic projects with original samples mapped to Sampler |
 | `brr.js` | Raw instrument-sample fallback |
 | `art.js`, `cover.js` | Optional cover-art lookup and processing |
 
-`node_modules/` and `cores/` are installed by setup and ignored by Git. Game data and extracted audio are never source dependencies.
+`node_modules/`, `cores/`, and `helpers/` are installed by setup and ignored by Git. Game data and extracted audio are never source dependencies.
 
 ![Another console and controller photo collage](../docs/assets/footer.jpg)
 

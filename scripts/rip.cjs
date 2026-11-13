@@ -2,7 +2,7 @@
 const path = require('path');
 const { ripRom } = require('../app/rip');
 const args=process.argv.slice(2);
-if(args.length<2||args.length>3){console.error('Usage: npm run rip -- /path/to/game.sfc-or.zip /path/to/output [mp3|wav|midi]');process.exit(2)}
+if(args.length<2||args.length>3){console.error('Usage: npm run rip -- /path/to/game.sfc-or.zip /path/to/output [mp3|wav|midi|logic]');process.exit(2)}
 let last='';
 ripRom([path.resolve(args[0])],path.resolve(args[1]),p=>{
   const text=p.phase==='track'?`Saved ${p.file}`:p.label||p.text;

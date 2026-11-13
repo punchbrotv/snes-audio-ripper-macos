@@ -64,7 +64,7 @@ canvas{background:#031019;border:2px solid;border-color:#111 #6a6a85 #6a6a85 #11
  <div class="marq"><span id="marq">*** DROP YOUR SNES GAME HERE *** .SFC .SMC .ZIP AND SPLIT FILES SUPPORTED ***</span></div>
  <div class="seek" id="seek"><i id="bar"></i><b id="knob"></b><span id="pct"></span></div>
  <div class="btns"><button title="Open ROM" id="bOpen">&#9167;</button><button title="Previous" id="bPrev">|&#9664;</button><button title="Play / Pause" id="bPlay">&#9654;</button><button title="Stop" id="bStop">&#9632;</button><button title="Next" id="bNext">&#9654;|</button><button title="Open output folder" id="bDir">FOLDER</button></div>
- <div class="export"><label for="format">EXPORT AS</label><select id="format"><option value="mp3">MP3</option><option value="wav">WAV</option><option value="midi">MIDI (experimental)</option></select></div>
+ <div class="export"><label for="format">EXPORT AS</label><select id="format"><option value="mp3">MP3</option><option value="wav">WAV</option><option value="midi">MIDI (experimental)</option><option value="logic">Logic Pro · original samples</option></select></div>
  <div class="export-note" id="formatNote">MP3 · compact audio files</div>
  <div class="drop" id="drop">
   <div class="list" id="list"></div>
@@ -87,7 +87,7 @@ function setScrollable(el,v){
 ['l1','l2','rn','rs'].forEach(id=>{const el=$(id);Object.defineProperty(el,'textContent',{configurable:true,set(v){setScrollable(el,String(v))},get(){return el.dataset.t||''}})});
 const audio=new Audio();audio.preload='auto';
 const urlFor=f=>api.fileURL(outDir,f);
-const nameOf=t=>t.file.replace(/^.*\//,'').replace(/\.(mp3|wav|mid)$/i,'');
+const nameOf=t=>t.file.replace(/^.*\//,'').replace(/\.(mp3|wav|mid|logicx)$/i,'');
 const PLAY_ICON='&#9654;',PAUSE_ICON='&#10074;&#10074;';
 function buildList(){
   const order=f=>f.startsWith('Music/')?0:f.startsWith('SFX/')?1:2;
@@ -109,9 +109,9 @@ function showNow(){
 function play(i){
   if(busy||!tracks.length)return;
   ti=(i+tracks.length)%tracks.length;
-  if (/\.mid$/i.test(tracks[ti].file)) {
-    stopAudio();markSel();$('l1').textContent='OPENING MIDI';$('l2').textContent=nameOf(tracks[ti]);
-    api.openMidi(tracks[ti].file).then(error=>{if(error){$('l1').textContent='OPEN IN YOUR DAW';$('l2').textContent='Use FOLDER to find the MIDI file.'}});return;
+  if (/\.(mid|logicx)$/i.test(tracks[ti].file)) {
+    stopAudio();markSel();$('l1').textContent='OPENING IN YOUR DAW';$('l2').textContent=nameOf(tracks[ti]);
+    api.openMidi(tracks[ti].file).then(error=>{if(error){$('l1').textContent='OPEN IN YOUR DAW';$('l2').textContent='Use FOLDER to find the exported project.'}});return;
   }
   audio.src=urlFor(tracks[ti].file);
   audio.play().catch(e=>{$('l1').textContent='ERROR';$('l2').textContent='CANNOT PLAY: '+e.message});
@@ -119,7 +119,7 @@ function play(i){
 }
 function toggle(){
   if(busy||!tracks.length)return;
-  if(ti<0||/\.mid$/i.test(tracks[ti].file)){play(ti<0?0:ti);return}
+  if(ti<0||/\.(mid|logicx)$/i.test(tracks[ti].file)){play(ti<0?0:ti);return}
   if(playing){audio.pause();playing=false;$('bPlay').innerHTML=PLAY_ICON;$('l1').classList.remove('done');$('l1').textContent='PAUSED'}
   else{audio.play();playing=true;level=.5;$('bPlay').innerHTML=PAUSE_ICON;showNow()}
 }
@@ -146,7 +146,7 @@ async function start(paths){
   if(r.ok){outDir=r.dir;setBar(1);$('seek').classList.remove('on');$('l1').textContent='EXTRACTION COMPLETE!';$('l1').classList.add('done','blink');$('l2').textContent=r.music+' MUSIC TRACKS   '+r.sfx+' SFX';buildList();
     if(r.warnings&&r.warnings.length)$('l1').textContent='COMPLETED WITH NOTES';
     if(r.skipped){$('l1').textContent='PARTIAL EXPORT';$('l2').textContent+='  '+r.skipped+' FAILED — SEE MANIFEST.JSON';}
-    setMarq('EXTRACTION COMPLETE! '+r.music+' MUSIC TRACKS AND '+r.sfx+' SFX ('+r.count+' FILES) SAVED TO OUTPUT FOLDER: '+r.name.toUpperCase()+(r.format==='midi'?' - CLICK A FILE TO OPEN IN YOUR MIDI APP':' - PRESS PLAY TO LISTEN'));}
+    setMarq('EXTRACTION COMPLETE! '+r.music+' MUSIC TRACKS AND '+r.sfx+' SFX ('+r.count+' FILES) SAVED TO OUTPUT FOLDER: '+r.name.toUpperCase()+(['midi','logic'].includes(r.format)?' - CLICK A FILE TO OPEN IN YOUR DAW':' - PRESS PLAY TO LISTEN'));}
   else{$('l1').textContent=r.cancelled?'STOPPED':'ERROR';$('l2').textContent=r.cancelled?'EXTRACTION CANCELLED':r.error;$('seek').classList.remove('on');setMarq(r.error.toUpperCase());$('hint').classList.remove('hide')}
 }
 api.onProgress(p=>{
@@ -169,7 +169,7 @@ api.onProgress(p=>{
   if(p.phase==='track'){
     level=.7;$('l1').textContent='SAVED  '+p.count+' FILES';$('l2').textContent=p.file;
     tracks.push({file:p.file,secs:p.secs});
-    const d=document.createElement('div');d.innerHTML='<span>'+p.file.replace(/\.(mp3|wav|mid)$/i,'')+'</span><span>'+fmt(p.secs)+'</span>';
+    const d=document.createElement('div');d.innerHTML='<span>'+p.file.replace(/\.(mp3|wav|mid|logicx)$/i,'')+'</span><span>'+fmt(p.secs)+'</span>';
     $('list').appendChild(d);$('list').scrollTop=1e9;return;
   }
   if(p.phase==='scan'){
@@ -180,15 +180,15 @@ api.onProgress(p=>{
     $('l1').textContent='ENCODING '+$('format').value.toUpperCase()+'  '+p.count+' / '+p.total;$('l2').textContent=p.file;
     setBar(p.pct);level=p.lvl;
     tracks.push({file:p.file,secs:p.secs});
-    const d=document.createElement('div');d.innerHTML='<span>'+p.count+'. '+p.file.replace(/\.(mp3|wav|mid)$/i,'')+'</span><span>'+fmt(p.secs)+'</span>';
+    const d=document.createElement('div');d.innerHTML='<span>'+p.count+'. '+p.file.replace(/\.(mp3|wav|mid|logicx)$/i,'')+'</span><span>'+fmt(p.secs)+'</span>';
     $('list').appendChild(d);$('list').scrollTop=1e9;
   }
 });
 $('format').value=localStorage.getItem('exportFormat')||'mp3';
-if(!['mp3','wav','midi'].includes($('format').value))$('format').value='mp3';
+if(!['mp3','wav','midi','logic'].includes($('format').value))$('format').value='mp3';
 function formatChanged(){
   localStorage.setItem('exportFormat',$('format').value);
-  $('formatNote').textContent={mp3:'MP3 · compact audio files',wav:'WAV · lossless 16-bit PCM audio',midi:'MIDI · editable notes; approximate tuning. Assign instruments in your DAW.'}[$('format').value];
+  $('formatNote').textContent={mp3:'MP3 · compact audio files',wav:'WAV · lossless 16-bit PCM audio',midi:'MIDI · editable notes; approximate tuning. Assign instruments in your DAW.',logic:'Logic Pro · editable notes with original SNES samples already mapped.'}[$('format').value];
 }
 $('format').onchange=formatChanged;formatChanged();
 const drop=$('drop');

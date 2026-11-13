@@ -20,6 +20,14 @@ The initial local test used a libretro nightly core reporting the same source re
 
 ROMs and extracted game audio are excluded from this repository.
 
+## Logic project export
+
+- [LogicProFormatWriter](https://github.com/jonkubis/LogicProFormatWriter) by Jon Kubis — MIT, pinned commit `9935ca88a3fad4c4232eb9dd755149e9cc9b9b65`. The structural writer and minimal seed data are vendored in `vendor/logicx/`; its license is included in the app.
+- Python 3.12.16 — Python Software Foundation license, included in `app/licenses/Python.txt`. The helper contains its own interpreter from [Astral’s python-build-standalone release 20261110](https://github.com/astral-sh/python-build-standalone/releases/tag/20261110); users do not install Python. The archive and SHA-256 are pinned in `scripts/build-logic.cjs`. Its third-party dependency notices are included in `app/licenses/python-runtime/`.
+- PyInstaller 6.16.0 — GPL with the bootloader exception permitting distribution of the bundled application under its own license. License and exception included in `app/licenses/PyInstaller.txt`. Build dependencies are pinned in `scripts/logic-build-requirements.txt`.
+- The empty Sampler state in `app/logic-data/` was authored for this project in Logic. It contains no game audio or Apple instrument samples.
+- EXS field references: [ConvertWithMoss format research](https://github.com/git-moss/ConvertWithMoss/tree/master/src/main/java/de/mossgrabers/convertwithmoss/format/exs). The project’s EXS serializer is independently implemented; no ConvertWithMoss code is bundled.
+
 ## README artwork
 
 The collage uses public-domain photographs by Evan-Amos / Vanamo Media. Exact source pages, file hashes, and editing notes are recorded in [docs/assets/SOURCES.md](docs/assets/SOURCES.md). Nintendo names and marks identify the photographed hardware; this project is independent of Nintendo.

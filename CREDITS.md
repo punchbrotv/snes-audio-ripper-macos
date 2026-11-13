@@ -21,6 +21,8 @@ Codex: https://openai.com/codex/
 
 ## Supporting projects
 
+- [Jon Kubis / LogicProFormatWriter](https://github.com/jonkubis/LogicProFormatWriter) — MIT-licensed native Logic project creation.
+- Python Software Foundation and PyInstaller contributors — self-contained Logic exporter runtime and packaging.
 - Electron — application runtime.
 - Snes9x and libretro — native SNES emulator core and frontend API.
 - Koffi — native-library bindings.

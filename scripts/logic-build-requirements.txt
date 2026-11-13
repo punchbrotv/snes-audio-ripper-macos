@@ -1,0 +1,6 @@
+PyInstaller==6.16.0
+altgraph==0.17.5
+macholib==1.16.4
+packaging==26.3
+pyinstaller-hooks-contrib==2026.10
+setuptools==84.2.1

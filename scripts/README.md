@@ -6,8 +6,9 @@ Run these from the repository root. [Complete build instructions](../README.md#b
 
 | Script | Purpose |
 | :--- | :--- |
-| `setup.cjs` | Install runtime dependencies and compile the pinned native core |
+| `setup.cjs` | Install runtime dependencies, compile the core, and bundle the Logic writer |
 | `build-core.cjs` | Download a checksum-verified Snes9x source archive and compile it for arm64 |
+| `build-logic.cjs`, `logic-writer.py` | Freeze a self-contained native Logic project writer |
 | `build-macos.cjs` | Assemble the self-contained app and verify its ad-hoc signature |
 | `rip.cjs` | Command-line extraction using the same engine as the GUI |
 | `test-packaged.cjs` | Exercise native bindings and extraction inside the packaged Electron runtime |

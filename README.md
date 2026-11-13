@@ -5,14 +5,14 @@
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-13%2B-24212f?style=for-the-badge&logo=apple" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Apple_Silicon-native-6640b2?style=for-the-badge" alt="Native Apple Silicon">
-  <img src="https://img.shields.io/badge/export-WAV%20%7C%20MP3%20%7C%20MIDI-d9ccef?style=for-the-badge" alt="WAV, MP3, and MIDI export">
+  <img src="https://img.shields.io/badge/export-WAV%20%7C%20MP3%20%7C%20MIDI%20%7C%20Logic-d9ccef?style=for-the-badge" alt="WAV, MP3, MIDI, and Logic Pro export">
   <a href="https://github.com/punchbrotv/snes-audio-ripper-macos/releases/latest"><img src="https://img.shields.io/github/v/release/punchbrotv/snes-audio-ripper-macos?style=for-the-badge&color=6640b2" alt="Latest release"></a>
 </p>
 <p align="center">
   <a href="#download">Download</a> · <a href="#use">Use</a> · <a href="#how-it-works">How it works</a> · <a href="#build">Build</a> · <a href="#credits">Credits</a> · <a href="docs/GALLERY.md">Even more SNES</a>
 </p>
 
-An unofficial Apple Silicon port of **[Samsqwamch’s SNES Audio Ripper](https://github.com/Samsqwamch/SNES_Audio_Ripper/releases/tag/v1.0.0)**. Drop in a SNES ROM or single-ROM ZIP, export music and sound effects as **WAV, MP3, or MIDI**. Preview WAV/MP3 in the built-in player; open MIDI in your DAW.
+An unofficial Apple Silicon port of **[Samsqwamch’s SNES Audio Ripper](https://github.com/Samsqwamch/SNES_Audio_Ripper/releases/tag/v1.0.0)**. Drop in a SNES ROM or single-ROM ZIP, export music and sound effects as **WAV, MP3, MIDI, or Logic Pro projects**. Preview WAV/MP3 in the built-in player, or open a Logic project with original samples already mapped.
 
 **Original Windows app and extraction engine: Samsqwamch. macOS port: [PunchBro](https://github.com/punchbrotv), built with [Codex by OpenAI](https://openai.com/codex/).**
 
@@ -33,7 +33,7 @@ The app is ad-hoc signed, not Apple-notarized. If macOS blocks it, use **System 
 | Small app rituals | What you get |
 | :--- | :--- |
 | 📦 Drop a ROM or ZIP | `.sfc`, `.smc`, and single-ROM ZIP loading; split files supported |
-| 🎵 Extract the sound | WAV or MP3 audio; experimental editable MIDI notes |
+| 🎵 Extract the sound | WAV/MP3 audio, editable MIDI, or Logic projects with original samples |
 | ▶ Press play | Original retro interface with a built-in audio player |
 | ⌘ Make yourself at home | Native file dialogs, ⌘O, and an output-folder picker |
 | ⏹ Change your mind | Background extraction with cancellation; completed files stay saved |
@@ -45,19 +45,24 @@ The app is ad-hoc signed, not Apple-notarized. If macOS blocks it, use **System 
 
 ![Drop, rip, play — controller, mouse, and console photo collage](docs/assets/use.jpg)
 
-Choose **EXPORT AS → MP3, WAV, or MIDI** before opening a ROM. Your choice is remembered. All three formats use the same discovered track catalog and track numbers. Each output folder includes `manifest.json`, listing every discovered track and any export failures.
+Choose **EXPORT AS → MP3, WAV, or MIDI** before opening a ROM. Your choice is remembered. All four formats use the same discovered track catalog and track numbers. Each output folder includes `manifest.json`, listing every discovered track and any export failures.
 
 | Format | Best for |
 | :--- | :--- |
 | **MP3** | Compact, ready-to-listen audio |
 | **WAV** | Lossless 16-bit PCM audio for editing and sampling |
+| **Logic Pro** | A `.logicx` project per sound, with editable notes and original SNES samples already mapped to Logic’s built-in Sampler |
 | **MIDI (experimental)** | Editable notes in eight voice tracks; estimated sample tuning and piano placeholders you can replace in your DAW |
+
+**For Logic:** choose **Logic Pro · original samples**, extract, then click a result to open its project. Press Space in Logic to play. Each voice/instrument combination has its own Sampler track, so changing one instrument does not change the others. The original 32 kHz samples travel inside the `.logicx` package; no sound-library download, plug-in purchase, or manual assignment is needed. You can edit the notes in Piano Roll or play the instruments yourself.
+
+The Logic export is an editable reconstruction: it preserves sample loops, relative pitch, timing, pan, and pitch bends. Sampler envelopes and SNES-only effects such as echo, noise, and pitch modulation can sound different from the console recording. Very wide pitch sweeps use adjoining notes to fit Sampler’s bend range. Use WAV or MP3 when you want the emulated console performance.
 
 MIDI reconstructs performance data from sound-chip commands. It does not contain the original samples, envelopes, or DSP effects. Unpitched samples use a placeholder note; sounds without recoverable note events are skipped. Click an exported MIDI file to open it in your system’s MIDI app.
 
 1. **Drop** a ROM or ZIP onto the window, or choose **File → Open ROM…** (⌘O). Unzip archives containing multiple ROMs first.
 2. **Extract.** The app creates a game-named folder on your Desktop. Change the destination with **File → Choose Output Folder…** for the current session.
-3. **Open the results.** Click a WAV/MP3 track to play it, or a MIDI track to open it in your MIDI app. **FOLDER** reveals the files in Finder. The square Stop button stops playback or cancels extraction.
+3. **Open the results.** Click a WAV/MP3 track to play it, or a MIDI/Logic result to open it in your music app. **FOLDER** reveals the files in Finder. The square Stop button stops playback or cancels extraction.
 
 Bring your own ROM. Game ROMs and extracted game audio are not included in the repository or release.
 
@@ -73,7 +78,7 @@ A SNES game usually doesn't store its soundtrack as a folder of ready-made songs
 - **Musical instructions** say which notes to play, how long to hold them, and when to loop.
 - **A sound program** acts as the conductor, telling the SNES sound hardware how to combine everything.
 
-The ripper finds those ingredients and runs the sound program on **emulated sound hardware**: software that reproduces the behavior of the console's audio chips. It calculates the resulting sound wave, tidies up the ending, and writes WAV audio or compresses it into MP3. For MIDI, it follows the sound program’s note and pitch commands instead of storing the waveform.
+The ripper finds those ingredients and runs the sound program on **emulated sound hardware**: software that reproduces the behavior of the console's audio chips. It calculates the resulting sound wave, tidies up the ending, and writes WAV audio or compresses it into MP3. For MIDI, it follows the sound program’s note and pitch commands instead of storing the waveform. The Logic export also packs the original instrument samples into a ready-to-play project.
 
 ```mermaid
 flowchart TD
@@ -84,6 +89,8 @@ flowchart TD
     K --> E["Run the sound program on emulated sound hardware"]
     E --> F["Record, trim, fade: WAV or MP3"]
     K --> M["Trace note commands: editable MIDI"]
+    K --> L["Notes + original samples + instrument mapping"]
+    L --> P["Logic project: open, play, edit"]
     F --> G["Export folders + audio player"]
     M --> H["Export folders + your MIDI app"]
     classDef input fill:#d9ccef,stroke:#6640b2,color:#24212f
@@ -96,7 +103,7 @@ flowchart TD
 
 **From memory to music.** The SPC sound renderer turns the game's sound program and samples into raw audio (PCM). The app saves those samples in WAV files or compresses them into MP3. MIDI instead records note events traced from the sound program. Extraction runs in a background worker so the window can stay responsive.
 
-**Sometimes the map is missing.** Different games use different sound programs. If discovery finds no usable recordings, WAV and MP3 exports can fall back to scanning for raw compressed instrument samples (BRR). These are individual sounds; that fallback does not guarantee complete songs or their original in-game pitch. MIDI needs recoverable note events and cannot use this raw-sample fallback.
+**Sometimes the map is missing.** Different games use different sound programs. If discovery finds no usable recordings, WAV and MP3 exports can fall back to scanning for raw compressed instrument samples (BRR). These are individual sounds; that fallback does not guarantee complete songs or their original in-game pitch. MIDI and Logic exports need recoverable note events and cannot use this raw-sample fallback.
 
 ![Twenty more real SNES hardware photographs](docs/assets/contact-04.jpg)
 
@@ -120,14 +127,14 @@ npm run build
 open 'dist/SNES Audio Ripper.app'
 ```
 
-**The application source lives in `app/`.** Setup installs pinned dependencies and compiles a pinned Snes9x core. It does not download or unpack the Windows release. Network access is needed for dependency setup; the finished app includes its runtime and extraction dependencies. Optional cover-art lookup uses the network when available.
+**The application source lives in `app/`.** Setup installs pinned dependencies, compiles a pinned Snes9x core, and bundles the Logic project writer with its own Python runtime. Setup fetches a checksum-verified portable Python build; neither developers nor app users need a separate Python installation. It does not download or unpack the Windows release. Network access is needed for dependency setup; the finished app includes its runtime and extraction dependencies. Optional cover-art lookup uses the network when available.
 
 <details>
 <summary><b>Command line and repository map</b></summary>
 
 ```sh
 npm run rip -- '/path/to/game.zip' '/path/to/output' wav
-# Last argument: mp3 (default), wav, or midi
+# Last argument: mp3 (default), wav, midi, or logic
 ```
 
 | Location | What's inside |
@@ -154,7 +161,8 @@ The original source and artwork are included with permission from the original a
 | **[PunchBro](https://github.com/punchbrotv)** | Commissioned and publishes this macOS port |
 | **[Codex by OpenAI](https://openai.com/codex/)** | macOS adaptation, build tooling and validation under PunchBro's direction |
 | **[Evan-Amos / Vanamo Media](https://commons.wikimedia.org/wiki/User:Evan-Amos)** | Every real hardware photograph decorating these docs; public domain |
-| **The supporting projects** | Electron, Snes9x/libretro, Koffi, spc-converter, lamejs/LAME |
+| **[Jon Kubis](https://github.com/jonkubis/LogicProFormatWriter)** | Open-source Logic project-format writer |
+| **The supporting projects** | Electron, Snes9x/libretro, Koffi, spc-converter, lamejs/LAME, Python, PyInstaller |
 
 [Full credits](CREDITS.md) · [Component notices](THIRD_PARTY_NOTICES.md) · [Every photo's source and editing notes](docs/assets/SOURCES.md)
 

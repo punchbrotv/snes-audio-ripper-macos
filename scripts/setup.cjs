@@ -12,4 +12,5 @@ const npm=process.env.npm_execpath;
 if(npm)run(process.execPath,[npm,'ci','--prefix',app],{stdio:'inherit'});
 else run('npm',['ci','--prefix',app],{stdio:'inherit'});
 buildCore(app);
+require('./build-logic.cjs').buildLogic();
 console.log('Dependencies ready. Next: npm test && npm run build');

@@ -30,7 +30,10 @@ class Catalog {
       this.emit({ phase: 'record', local: i / this.tracks.length, pct: .8 + .2 * i / this.tracks.length, text: `EXPORTING ${selected.toUpperCase()} FROM THE DISCOVERED TRACK CATALOG`, label: `EXPORTING ${selected.toUpperCase()}`, sub: `${i + 1}/${this.tracks.length} DISCOVERED TRACKS` });
       try {
         let bytes;
-        if (selected === 'midi') {
+        if (selected === 'logic') {
+          const write = deps.logic || require('./logic').write;
+          entry.project = await write(path.join(this.dir, entry.file), t.source, t.seconds, t.label);
+        } else if (selected === 'midi') {
           const result = await midi(t.source, t.seconds, t.label);
           if (!result) throw new Error('No recoverable MIDI note events for this sound.');
           bytes = result.bytes;
@@ -51,7 +54,7 @@ class Catalog {
           bytes = selected === 'wav' ? require('./wav').encodeWav([L, R], rate) : await encode([L, R], rate, 160);
         }
         fs.mkdirSync(path.join(this.dir, t.kind), { recursive: true });
-        fs.writeFileSync(path.join(this.dir, entry.file), bytes);
+        if (selected !== 'logic') fs.writeFileSync(path.join(this.dir, entry.file), bytes);
         entry.status = 'exported'; t.kind === 'Music' ? music++ : sfx++;
         this.log(`saved ${entry.file} [${t.label}]`);
         this.emit({ phase: 'track', file: entry.file, secs: t.seconds, count: music + sfx, total: this.tracks.length });

@@ -54,23 +54,24 @@ test('export failures preserve the discovered catalog and stable IDs in all form
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'snes-catalog-')); t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const audio = { rate: 8000, left: new Int16Array(8000).fill(500), right: new Int16Array(8000).fill(-500) };
   const catalogs = [];
-  for (const format of ['wav', 'mp3', 'midi']) {
+  for (const format of ['wav', 'mp3', 'midi', 'logic']) {
     const out = path.join(dir, format), catalog = new Catalog(out);
     catalog.add('Music', 'first', { ...audio, spc: Buffer.from([1]) }, 1, 0);
     catalog.add('Music', 'second', { ...audio, spc: Buffer.from([2]) }, 1, 0);
     const result = await catalog.export(format, {
       render: async () => audio,
       encode: async () => Buffer.from('synthetic encoded audio'),
-      midi: async s => s.spc[0] === 1 ? null : { bytes: Buffer.from('synthetic MIDI') }
+      midi: async s => s.spc[0] === 1 ? null : { bytes: Buffer.from('synthetic MIDI') },
+      logic: async (file,s) => { if(s.spc[0]===1)throw Error('synthetic failure');fs.mkdirSync(file,{recursive:true});return {tracks:1} }
     });
     const manifest = JSON.parse(fs.readFileSync(path.join(out, 'manifest.json')));
     catalogs.push(manifest.tracks.map(({ id, kind, label, seconds }) => ({ id, kind, label, seconds })));
     assert.deepEqual(result.discovered, { music: 2, sfx: 0 });
-    if (format === 'midi') {
+    if (format === 'midi' || format === 'logic') {
       assert.equal(result.music, 1); assert.equal(result.skipped, 1);
       assert.equal(manifest.tracks[0].status, 'failed');
-      assert.ok(fs.existsSync(path.join(out, 'Music/Music Track-2.mid')));
+      assert.ok(fs.existsSync(path.join(out, 'Music/Music Track-2.'+(format==='logic'?'logicx':'mid'))));
     } else { assert.equal(result.music, 2); assert.equal(result.skipped, 0); }
   }
-  assert.deepEqual(catalogs[0], catalogs[1]); assert.deepEqual(catalogs[1], catalogs[2]);
+  assert.deepEqual(catalogs[0], catalogs[1]); assert.deepEqual(catalogs[1], catalogs[2]); assert.deepEqual(catalogs[2], catalogs[3]);
 });

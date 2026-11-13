@@ -143,7 +143,7 @@ async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 's
       return { ok: false, dir, error: 'Tracks were discovered but export failed. See manifest.json for each failure.' };
     }
     // when the sound program was ripped properly, the guessy raw-sample scan is not needed
-    if (selected === 'midi' && !(rec && rec.total)) { await artP; return { ok: false, dir, error: 'No editable note events recovered. Try WAV or MP3 for audio export.' }; }
+    if (['midi','logic'].includes(selected) && !(rec && rec.total)) { await artP; return { ok: false, dir, error: 'No editable note events recovered. Try WAV or MP3 for audio export.' }; }
     let samples = (rec && rec.total) ? [] : await scanBRR(rom, (p, f) => emit({ phase: 'scan', pct: base + p * 0.5 * span, found: f }));
     if (!samples.length && !(rec && rec.total)) return { ok: false, error: 'No audio found. This ROM may use compressed sample data.' };
     // keep the cleanest MAX_FILES candidates, then number them in ROM order

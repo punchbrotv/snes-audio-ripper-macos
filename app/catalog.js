@@ -22,14 +22,16 @@ class Catalog {
     selected = Export.format(selected);
     const render = deps.render || require('./render').render, encode = deps.encode || require('./mp3').encode;
     const midi = deps.midi || require('./midi').fromAudioState;
-    const manifest = { version: 1, format: selected, ...(this.options.romSha256 ? { romSha256: this.options.romSha256 } : {}), discovered: { music: this.counts.Music, sfx: this.counts.SFX }, tracks: this.tracks.map(({ source, fade, ...t }) => ({ ...t, file: `${t.kind}/${Names.stem(t.id, t.title)}.${Export.extension(selected)}`, status: 'pending' })) };
+    const includeSfx = this.options.includeSfx === true;
+    const manifest = { version: 1, format: selected, includeSfx, ...(this.options.romSha256 ? { romSha256: this.options.romSha256 } : {}), discovered: { music: this.counts.Music, sfx: this.counts.SFX }, tracks: this.tracks.map(({ source, fade, ...t }) => ({ ...t, file: `${t.kind}/${Names.stem(t.id, t.title)}.${Export.extension(selected)}`, status: t.kind === 'SFX' && !includeSfx ? 'excluded' : 'pending' })) };
+    const selectedTracks = this.tracks.map((t,i) => ({t, entry:manifest.tracks[i]})).filter(({entry}) => entry.status !== 'excluded');
     const persist = () => fs.writeFileSync(path.join(this.dir, 'manifest.json'), JSON.stringify(manifest, null, 2));
     fs.mkdirSync(this.dir, { recursive: true }); persist();
     let music = 0, sfx = 0, skipped = 0;
-    for (let i = 0; i < this.tracks.length; i++) {
-      const t = this.tracks[i], entry = manifest.tracks[i];
+    for (let i = 0; i < selectedTracks.length; i++) {
+      const {t, entry} = selectedTracks[i];
       const timingOptions = { timing: Names.timingFor(this.options.titleProfile, t.kind, t.label), inferTiming: t.kind === 'Music', instruments: this.options.titleProfile?.instruments };
-      this.emit({ phase: 'record', local: i / this.tracks.length, pct: .8 + .2 * i / this.tracks.length, text: `EXPORTING ${selected.toUpperCase()} FROM THE DISCOVERED TRACK CATALOG`, label: `EXPORTING ${selected.toUpperCase()}`, sub: `${i + 1}/${this.tracks.length} DISCOVERED TRACKS` });
+      this.emit({ phase: 'record', local: i / selectedTracks.length, pct: .8 + .2 * i / selectedTracks.length, text: `EXPORTING ${selected.toUpperCase()} FROM THE DISCOVERED TRACK CATALOG`, label: `EXPORTING ${selected.toUpperCase()}`, sub: `${i + 1}/${selectedTracks.length} SELECTED TRACKS` });
       try {
         let bytes;
         if (selected === 'logic') {
@@ -60,7 +62,7 @@ class Catalog {
         if (selected !== 'logic') fs.writeFileSync(path.join(this.dir, entry.file), bytes);
         entry.status = 'exported'; t.kind === 'Music' ? music++ : sfx++;
         this.log(`saved ${entry.file} [${t.label}]`);
-        this.emit({ phase: 'track', file: entry.file, secs: t.seconds, count: music + sfx, total: this.tracks.length });
+        this.emit({ phase: 'track', file: entry.file, secs: t.seconds, count: music + sfx, total: selectedTracks.length });
       } catch (e) { skipped++; entry.status = 'failed'; entry.error = e.message; this.log(`export failed ${entry.file}: ${e.message}`); }
       persist();
     }

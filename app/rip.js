@@ -105,7 +105,7 @@ async function sampleAudio(pcm, loop) {
 
 async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 'snes-audio-ripper'), options = {}) {
   try {
-    const selected = Export.format(options.format), ext = Export.extension(selected);
+    const selected = Export.format(options.format), ext = Export.extension(selected), includeSfx = options.includeSfx === true;
     emit({ phase: 'join', text: 'LOADING ROM...' });
     const input = require('./input').loadInput(paths);
     let rom = input.rom;
@@ -132,7 +132,7 @@ async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 's
     const romSha256 = Names.romHash(rom);
     const titleProfile = Names.load(input.romPath, cacheDir, romSha256, text => { log(text); emit({ phase: 'note', text }); });
     log('ROM ' + name + ', ' + rom.length + ' bytes, resourcesPath ' + process.resourcesPath);
-    try { rec = await recordAudio(rom, input.romPath, dir, emit, log, { format: selected, romSha256, titleProfile }); }
+    try { rec = await recordAudio(rom, input.romPath, dir, emit, log, { format: selected, includeSfx, romSha256, titleProfile }); }
     catch (e) {
       warnings.push('Full music extraction failed: ' + e.message);
       log('RECORDING FAILED: ' + (e.stack || e.message));
@@ -141,12 +141,13 @@ async function ripRom(paths, desktop, emit, cacheDir = path.join(os.tmpdir(), 's
     }
     const base = 0, span = 1;
     if (rec?.skipped) warnings.push(`${rec.skipped} discovered tracks could not be exported; see manifest.json.`);
-    if (rec?.discovered && !rec.total && rec.discovered.music + rec.discovered.sfx > 0) {
+    if (rec?.skipped && !rec.total) {
       await artP;
       return { ok: false, dir, error: 'Tracks were discovered but export failed. See manifest.json for each failure.' };
     }
     // when the sound program was ripped properly, the guessy raw-sample scan is not needed
     if (['midi','logic'].includes(selected) && !(rec && rec.total)) { await artP; return { ok: false, dir, error: 'No editable note events recovered. Try WAV or MP3 for audio export.' }; }
+    if (!includeSfx && !rec?.total) { await artP; return { ok: false, dir, error: 'No music tracks found. Enable Include sound effects (SFX) to also extract effects.' }; }
     let samples = (rec && rec.total) ? [] : await scanBRR(rom, (p, f) => emit({ phase: 'scan', pct: base + p * 0.5 * span, found: f }));
     if (!samples.length && !(rec && rec.total)) return { ok: false, error: 'No audio found. This ROM may use compressed sample data.' };
     // keep the cleanest MAX_FILES candidates, then number them in ROM order

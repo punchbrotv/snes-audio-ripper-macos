@@ -12,7 +12,7 @@ ELECTRON_RUN_AS_NODE=1 'dist/SNES Audio Ripper.app/Contents/MacOS/Electron' \
 node scripts/verify-output.cjs '/path/to/exported/game'
 ```
 
-The packaged test accepts `mp3` (default), `wav`, `midi`, or `logic`. The second command requires FFmpeg and a folder of exported WAV/MP3 files. It checks decoding, non-silence, decoded duration, and sample peaks. Generated audio and test logs are ignored by Git.
+The packaged test accepts `mp3` (default), `wav`, `midi`, or `logic`. Music is exported by default; append `--include-sfx` to include effects. Catalog tests verify this selection across all four formats, including stable music IDs and no SFX files or export failures when effects are excluded. The second command requires FFmpeg and a folder of exported WAV/MP3 files. It checks decoding, non-silence, decoded duration, and sample peaks. Generated audio and test logs are ignored by Git.
 
 ![More purple buttons](../docs/assets/photo-snes-controller.jpg)
 

@@ -75,3 +75,37 @@ test('export failures preserve the discovered catalog and stable IDs in all form
   }
   assert.deepEqual(catalogs[0], catalogs[1]); assert.deepEqual(catalogs[1], catalogs[2]); assert.deepEqual(catalogs[2], catalogs[3]);
 });
+test('music-only default excludes effects in every format; explicit opt-in restores them', async t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'snes-selection-')); t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const audio = { rate:8000, left:new Int16Array(80).fill(500), right:new Int16Array(80).fill(-500) };
+  for (const format of ['wav','mp3','midi','logic']) {
+    let musicFiles;
+    for (const [mode, options] of [['default',{}],['off',{includeSfx:false}],['on',{includeSfx:true}],['invalid',{includeSfx:'true'}]]) {
+      const out = path.join(dir,format,mode), events=[], calls=[];
+      const catalog = new Catalog(out, p=>events.push(p), ()=>{}, options);
+      catalog.add('Music','song one',audio,.01,0);
+      catalog.add('SFX','effect',audio,.01,0);
+      catalog.add('Music','song two',audio,.01,0);
+      const deps = {
+        encode:async ()=>{calls.push('encode');return Buffer.from('audio')},
+        midi:async (_s,_seconds,title)=>{calls.push(title);return {bytes:Buffer.from(title)}},
+        logic:async (file,_s,_seconds,title)=>{calls.push(title);fs.mkdirSync(file,{recursive:true});fs.writeFileSync(path.join(file,'fixture'),title);return {tracks:1}}
+      };
+      const result=await catalog.export(format,deps), enabled=mode==='on';
+      assert.equal(result.music,2);assert.equal(result.sfx,enabled?1:0);assert.equal(result.skipped,0);
+      assert.equal(fs.existsSync(path.join(out,'SFX')),enabled);
+      const manifest=JSON.parse(fs.readFileSync(path.join(out,'manifest.json')));
+      assert.equal(manifest.includeSfx,enabled);assert.equal(manifest.tracks[1].status,enabled?'exported':'excluded');
+      assert.deepEqual(manifest.discovered,{music:2,sfx:1});
+      assert.deepEqual(events.filter(p=>p.phase==='track').map(p=>p.count),enabled?[1,2,3]:[1,2]);
+      assert.ok(events.filter(p=>p.phase==='track').every(p=>p.total===(enabled?3:2)));
+      if(format!=='wav')assert.equal(calls.length,enabled?3:2);
+      const files=fs.readdirSync(path.join(out,'Music'));
+      if(musicFiles)assert.deepEqual(files,musicFiles);else musicFiles=files;
+      for(const file of files){
+        const leaf=format==='logic'?path.join(file,'fixture'):file;
+        assert.deepEqual(fs.readFileSync(path.join(out,'Music',leaf)),fs.readFileSync(path.join(dir,format,'default','Music',leaf)));
+      }
+    }
+  }
+});

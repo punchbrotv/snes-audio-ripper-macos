@@ -65,6 +65,7 @@ canvas{background:#031019;border:2px solid;border-color:#111 #6a6a85 #6a6a85 #11
  <div class="seek" id="seek"><i id="bar"></i><b id="knob"></b><span id="pct"></span></div>
  <div class="btns"><button title="Open ROM" id="bOpen">&#9167;</button><button title="Previous" id="bPrev">|&#9664;</button><button title="Play / Pause" id="bPlay">&#9654;</button><button title="Stop" id="bStop">&#9632;</button><button title="Next" id="bNext">&#9654;|</button><button title="Open output folder" id="bDir">FOLDER</button></div>
  <div class="export"><label for="format">EXPORT AS</label><select id="format"><option value="mp3">MP3</option><option value="wav">WAV</option><option value="midi">MIDI (experimental)</option><option value="logic">Logic Pro · original samples</option></select></div>
+ <label class="export"><input type="checkbox" id="includeSfx"> Include sound effects (SFX)</label>
  <div class="export-note" id="formatNote">MP3 · compact audio files</div>
  <div class="drop" id="drop">
   <div class="list" id="list"></div>
@@ -139,10 +140,10 @@ function reset(){
 }
 async function start(paths){
   if(busy||!paths.length)return;
-  reset();busy=true;$('format').disabled=true;$('hint').classList.add('hide');$('seek').classList.add('on');$('l1').textContent='PLAY  LOADING ROM...';$('l2').textContent='';
+  reset();busy=true;$('format').disabled=true;$('includeSfx').disabled=true;$('hint').classList.add('hide');$('seek').classList.add('on');$('l1').textContent='PLAY  LOADING ROM...';$('l2').textContent='';
   t0=Date.now();timer=setInterval(()=>$('time').textContent=fmt((Date.now()-t0)/1000),250);level=.4;
-  let r; try { r=await api.rip(paths,$('format').value); } catch(e) {r={ok:false,error:e.message}};
-  clearInterval(timer);busy=false;$('format').disabled=false;level=0;
+  let r; try { r=await api.rip(paths,$('format').value,$('includeSfx').checked); } catch(e) {r={ok:false,error:e.message}};
+  clearInterval(timer);busy=false;$('format').disabled=false;$('includeSfx').disabled=false;level=0;
   if(r.ok){outDir=r.dir;setBar(1);$('seek').classList.remove('on');$('l1').textContent='EXTRACTION COMPLETE!';$('l1').classList.add('done','blink');$('l2').textContent=r.music+' MUSIC TRACKS   '+r.sfx+' SFX';buildList();
     if(r.warnings&&r.warnings.length)$('l1').textContent='COMPLETED WITH NOTES';
     if(r.skipped){$('l1').textContent='PARTIAL EXPORT';$('l2').textContent+='  '+r.skipped+' FAILED — SEE MANIFEST.JSON';}

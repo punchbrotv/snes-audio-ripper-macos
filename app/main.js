@@ -49,12 +49,12 @@ ipcMain.handle('pick', async () => {
   const r=await dialog.showOpenDialog(win,{properties:['openFile','multiSelections'],filters:[{name:'SNES ROM or ZIP',extensions:['sfc','smc','swc','fig','bin','zip','001','002','003','a','b']}]});
   return r.canceled?[]:r.filePaths;
 });
-ipcMain.handle('rip', (e, paths, selected = 'mp3') => {
+ipcMain.handle('rip', (e, paths, selected = 'mp3', includeSfx = false) => {
   if(job) return {ok:false,error:'An extraction is already running.'};
   try { require('./export').format(selected); } catch (err) { return {ok:false,error:err.message}; }
   if(!Array.isArray(paths)||!paths.length||paths.some(p=>typeof p!=='string')) return {ok:false,error:'Choose a ROM.'};
   return new Promise(resolve => {
-    const worker = new Worker(path.join(__dirname,'rip-worker.js'),{workerData:{paths,output,cache:app.getPath('userData'),format:selected}});
+    const worker = new Worker(path.join(__dirname,'rip-worker.js'),{workerData:{paths,output,cache:app.getPath('userData'),format:selected,includeSfx:includeSfx === true}});
     job=worker;
     let finished=false;
     const finish=r=>{if(finished)return;finished=true;if(job===worker)job=null;if(r.ok)lastOutput=r.dir;resolve(r)};

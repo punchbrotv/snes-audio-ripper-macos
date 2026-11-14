@@ -4,7 +4,7 @@ contextBridge.exposeInMainWorld('api', {
   onBrowse: cb => ipcRenderer.on('browse', cb),
   cancel: () => ipcRenderer.send('cancel'),
   pick: () => ipcRenderer.invoke('pick'),
-  rip: (p, format) => ipcRenderer.invoke('rip', p, format),
+  rip: (p, format, includeSfx = false) => ipcRenderer.invoke('rip', p, format, includeSfx),
   onProgress: cb => ipcRenderer.on('progress', (_, d) => cb(d)),
   win: a => ipcRenderer.send('win', a),
   openMidi: file => ipcRenderer.invoke('open-midi', file),

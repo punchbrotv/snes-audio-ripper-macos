@@ -36,7 +36,7 @@ async function ripSnapshots(snaps, dir, emit, log, deps = {}, rom = null, option
   }
   const kept = [], sfxCmds = new Set(), seen = new Set(), bad = new Set(), deadline = Date.now() + 45 * 60e3;
   let music = 0, sfx = 0, failures = 0, first = true;
-  fs.mkdirSync(path.join(dir, 'Music'), { recursive: true }); fs.mkdirSync(path.join(dir, 'SFX'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Music'), { recursive: true });
 
   const save = async (kind, label, r, keepSec, fadeSec) => {
     catalog.add(kind, label, r, keepSec, fadeSec);

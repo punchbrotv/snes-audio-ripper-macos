@@ -45,7 +45,7 @@ The app is ad-hoc signed, not Apple-notarized. If macOS blocks it, use **System 
 
 ![Drop, rip, play — controller, mouse, and console photo collage](docs/assets/use.jpg)
 
-Choose **EXPORT AS → MP3, WAV, MIDI, or Logic Pro** before opening a ROM. Your choice is remembered. All four formats use the same discovered track catalog and track numbers. Each output folder includes `manifest.json`, listing every discovered track and any export failures.
+Choose **EXPORT AS → MP3, WAV, MIDI, or Logic Pro** before opening a ROM. Your choice is remembered. All four formats use the same discovered track catalog and track numbers. **Music only is the default.** Check **Include sound effects (SFX)** before opening a ROM to add effects; the checkbox starts off each time you launch the app. Each output folder includes `manifest.json`, listing every discovered track, effects excluded by your selection, and any export failures.
 
 | Format | Best for |
 | :--- | :--- |
@@ -156,7 +156,8 @@ open 'dist/SNES Audio Ripper.app'
 
 ```sh
 npm run rip -- '/path/to/game.zip' '/path/to/output' wav
-# Last argument: mp3 (default), wav, midi, or logic
+# Format: mp3 (default), wav, midi, or logic
+# Append --include-sfx to also export sound effects
 ```
 
 | Location | What's inside |
